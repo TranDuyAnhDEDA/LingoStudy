@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "165193071905",
+    "project_id": "lingostudy-5b79a",
+    "storage_bucket": "lingostudy-5b79a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:165193071905:android:c8e56997489ab2b1c85260",
+        "android_client_info": {
+          "package_name": "com.example.mystudyapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkxadmbO85hUCWc9M2riYGyypy_8n91Z8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

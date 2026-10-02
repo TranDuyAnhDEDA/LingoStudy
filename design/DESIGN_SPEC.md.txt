@@ -1,0 +1,590 @@
+# LingoFlow UI Design Specification
+
+## Project
+
+This is an Android English-learning application.
+
+The application uses a unique educational parrot mascot as its main visual identity.
+
+The Home screen must be visually based on:
+
+reference/home_reference.png
+
+---
+
+# Design Goals
+
+The application should feel:
+
+- modern
+- colorful
+- friendly
+- playful
+- educational
+- polished
+- premium
+- energetic
+
+The UI must NOT look like a generic Android template.
+
+The UI must NOT imitate Duolingo.
+
+Do not use an owl mascot.
+
+The parrot is the unique mascot of this application.
+
+---
+
+# Main Mascot
+
+The main mascot is:
+
+- red/orange parrot
+- blue and yellow wings
+- dark purple/blue beak
+- large expressive eyes
+- white headphones
+- star detail on headphones
+- white hoodie
+- tablet
+
+Use the provided mascot asset:
+
+app/src/main/res/drawable-nodpi/mascot_parrot.png
+
+Do not redraw the mascot.
+
+Do not replace the mascot.
+
+Do not change the mascot's colors.
+
+Do not distort its aspect ratio.
+
+---
+
+# Home Screen
+
+The Home screen should contain:
+
+1. Greeting
+2. User statistics
+3. Large mascot hero section
+4. Mascot speech bubble
+5. Continue Learning card
+6. Learning category cards
+7. Progress section
+8. Bottom navigation
+
+---
+
+# Greeting
+
+Display a friendly greeting such as:
+
+"Good morning, Duy Anh!"
+
+Supporting text:
+
+"Small steps every day,
+big progress ahead!"
+
+The greeting should be visually prominent.
+
+---
+
+# User Statistics
+
+Display:
+
+5 Day streak
+
+Lv. 3
+
+320 / 600 XP
+
+Use rounded cards.
+
+---
+
+# Mascot Hero
+
+The mascot must be one of the largest visual elements on the screen.
+
+It should not appear as a tiny icon.
+
+The mascot should feel like the main character of the application.
+
+Add subtle decorative elements around it.
+
+Possible decorations:
+
+- clouds
+- stars
+- plants
+- books
+- small particles
+
+These decorations must remain secondary to the mascot.
+
+---
+
+# Speech Bubble
+
+The mascot should have a friendly speech bubble.
+
+Example:
+
+"Ready to learn English?"
+
+The speech bubble should have:
+
+- rounded shape
+- soft background
+- friendly typography
+- small pointer toward the mascot
+
+---
+
+# Continue Learning
+
+Display:
+
+Continue Learning
+
+Lesson 3
+
+Travel and Tourism
+
+Vocabulary · 8 min
+
+Progress:
+
+3 / 5
+
+Include a prominent continue/play button.
+
+Use a large rounded card.
+
+---
+
+# Learning Categories
+
+Display four categories:
+
+Vocabulary
+Grammar
+Listening
+Pronunciation
+
+Each category should have:
+
+- icon
+- title
+- progress percentage
+- progress bar
+- arrow
+
+Example:
+
+Vocabulary — 72%
+
+Grammar — 64%
+
+Listening — 58%
+
+Pronunciation — 45%
+
+---
+
+# Progress
+
+Display:
+
+320 Total XP
+
+5 Day streak
+
+12 Lessons completed
+
+48% Overall progress
+
+---
+
+# Bottom Navigation
+
+Navigation:
+
+Home
+Learn
+Practice
+Me
+
+Home is active.
+
+---
+
+# Visual Language
+
+Use:
+
+- rounded cards
+- soft shadows
+- generous spacing
+- pastel colors
+- blue accents
+- yellow accents
+- orange accents
+- green accents
+- purple accents
+
+Avoid:
+
+- excessive gradients
+- excessive glassmorphism
+- hard rectangular cards
+- heavy shadows
+- clutter
+- overly saturated backgrounds
+
+---
+
+# Typography
+
+Use a friendly rounded typography hierarchy.
+
+Large greeting:
+
+28–32sp
+
+Section title:
+
+22–26sp
+
+Card title:
+
+16–20sp
+
+Supporting text:
+
+13–16sp
+
+Statistics:
+
+18–24sp
+
+---
+
+# Spacing
+
+Use a consistent spacing system:
+
+8dp
+12dp
+16dp
+20dp
+24dp
+32dp
+
+Large sections should generally have 24–32dp spacing.
+
+---
+
+# Card Shape
+
+Cards should generally use:
+
+20–28dp corner radius.
+
+Large hero cards can use:
+
+28–32dp.
+
+Buttons:
+
+16–24dp.
+
+---
+
+# Animation
+
+The mascot should have subtle animation.
+
+Possible animations:
+
+- floating
+- breathing
+- small rotation
+- speech bubble entrance
+- subtle scale
+
+Use ObjectAnimator for simple animations.
+
+Use Lottie only for complex effects such as:
+
+- sparkles
+- celebration
+- success particles
+
+Animations must not interfere with usability.
+
+---
+
+# Responsive Design
+
+The application must work on:
+
+- small Android phones
+- normal Android phones
+- large Android phones
+
+Do not use absolute pixel positioning.
+
+Use:
+
+- dp
+- sp
+- ConstraintLayout
+- proper constraints
+- ScrollView/NestedScrollView where necessary
+
+---
+
+# Important
+
+reference/home_reference.png is a visual reference.
+
+Do NOT place the reference image itself inside the application.
+
+The actual Home screen must be recreated using:
+
+- XML
+- ImageView
+- TextView
+- Material components
+- ShapeDrawables
+- actual Android UI components
+- real application data
+
+The screenshot is NOT the application UI.
+
+It is the design reference.
+
+# Learn Screen
+
+The Learn screen is the main learning-navigation screen.
+
+It must share the same visual identity as the Home screen.
+
+Do not create a completely different design language.
+
+---
+
+## Learn Header
+
+Top area:
+
+- back/navigation icon where appropriate
+- title: "Learn"
+- subtitle:
+  "Choose a skill and
+   keep moving forward!"
+- streak indicator on the right
+
+The header should feel friendly and spacious.
+
+---
+
+## Learn Mascot Hero
+
+The same parrot mascot from the Home screen must be used.
+
+Do not create another mascot.
+
+The mascot should appear large in the upper hero section.
+
+The mascot can hold a book or use an appropriate provided expression if such an asset exists.
+
+If only the main mascot asset exists, use the main mascot asset without modifying the character.
+
+Include a speech bubble:
+
+"Let's learn
+something new
+today!"
+
+The mascot should feel like a learning companion.
+
+---
+
+## Learning Path
+
+Section title:
+
+"Your Learning Path"
+
+Optional action:
+
+"View all →"
+
+Show current level:
+
+"Level 3"
+
+Level name:
+
+"Explorer"
+
+XP:
+
+"320 / 600 XP"
+
+Use a horizontal progress bar.
+
+The card should have:
+
+- white background
+- large rounded corners
+- subtle shadow
+- blue accent
+- clear progress hierarchy
+
+---
+
+# Skill Cards
+
+Display four learning skills:
+
+1. Vocabulary
+2. Grammar
+3. Listening
+4. Pronunciation
+
+Each skill card contains:
+
+- illustration/icon
+- skill name
+- short description
+- percentage
+- progress bar
+- navigation arrow
+
+Example:
+
+Vocabulary
+Build your word power
+72%
+
+Grammar
+Master the rules
+64%
+
+Listening
+Hear and understand
+58%
+
+Pronunciation
+Speak with confidence
+45%
+
+---
+
+# Skill Card Colors
+
+Use soft pastel variations.
+
+Vocabulary:
+soft blue
+
+Grammar:
+soft yellow
+
+Listening:
+soft purple
+
+Pronunciation:
+soft green
+
+The colors should be subtle.
+
+Do not make them extremely saturated.
+
+---
+
+# Daily Practice
+
+At the bottom of the learning content:
+
+Title:
+
+"Daily Practice"
+
+Description:
+
+"Build good habits, see real progress!"
+
+Button:
+
+"Start now →"
+
+This should be visually noticeable but not overpower the learning cards.
+
+---
+
+# Learn Navigation
+
+Bottom navigation:
+
+Home
+Learn
+Practice
+Me
+
+Learn is the active destination.
+
+The navigation must be consistent with Home.
+
+---
+
+# Learn Screen Interaction
+
+When the user taps:
+
+Vocabulary
+→ navigate to Vocabulary screen
+
+Grammar
+→ navigate to Grammar screen
+
+Listening
+→ navigate to Listening screen
+
+Pronunciation
+→ navigate to Pronunciation screen
+
+Daily Practice
+→ navigate to the appropriate practice flow
+
+View all
+→ navigate to the complete learning path if that screen exists.
+
+Do not create fake destinations if they do not exist.
+
+If a destination does not exist yet, preserve the UI action structure and report what needs to be implemented later.
+
+---
+
+# Learn Animations
+
+Use subtle animations.
+
+Possible:
+
+- mascot floating
+- mascot entrance
+- speech bubble entrance
+- learning card staggered entrance
+- progress bar animation
+
+Do not over-animate the screen.
+
+The user should still be able to focus on learning.
