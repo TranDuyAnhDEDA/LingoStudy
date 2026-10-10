@@ -1,6 +1,7 @@
 package com.example.mystudyapp.data.repository
 
 import com.example.mystudyapp.data.model.Grammar
+import com.example.mystudyapp.data.model.LearningProgram
 import com.example.mystudyapp.data.model.Lesson
 import com.example.mystudyapp.data.model.Level
 import com.example.mystudyapp.data.model.Listening
@@ -11,6 +12,9 @@ import com.example.mystudyapp.data.model.Vocabulary
 import kotlinx.coroutines.flow.Flow
 
 interface LearningRepository {
+    fun getPrograms(): Flow<Result<List<LearningProgram>>>
+    fun getProgram(programId: String): Flow<Result<LearningProgram?>>
+    fun getLevelsByProgram(programId: String): Flow<Result<List<Level>>>
     fun getLevels(): Flow<Result<List<Level>>>
     fun getLevel(levelId: String): Flow<Result<Level?>>
     fun getUnitsByLevel(levelId: String): Flow<Result<List<Unit>>>

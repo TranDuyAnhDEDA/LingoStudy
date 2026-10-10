@@ -10,6 +10,7 @@ import com.example.mystudyapp.data.mapper.toQuiz
 import com.example.mystudyapp.data.mapper.toUnitModel
 import com.example.mystudyapp.data.mapper.toVocabulary
 import com.example.mystudyapp.data.model.Grammar
+import com.example.mystudyapp.data.model.LearningProgram
 import com.example.mystudyapp.data.model.Lesson
 import com.example.mystudyapp.data.model.Level
 import com.example.mystudyapp.data.model.Listening
@@ -21,10 +22,75 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 class LearningRepositoryImpl(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) : LearningRepository {
+
+    private val defaultPrograms = listOf(
+        LearningProgram(
+            id = "program_beginner",
+            title = "Beginner English",
+            description = "Build a strong foundation with practical everyday situations, travel, and basic conversations.",
+            targetAudience = "Beginners & Intermediate Learners",
+            iconEmoji = "🌱",
+            levelIds = listOf("level_3"),
+            isAvailable = true
+        ),
+        LearningProgram(
+            id = "program_kids",
+            title = "English for Kids",
+            description = "Fun, interactive lessons with playful songs, colorful stories, and foundational words for young learners.",
+            targetAudience = "Children & Young Learners",
+            iconEmoji = "🧸",
+            levelIds = emptyList(),
+            isAvailable = false
+        ),
+        LearningProgram(
+            id = "program_adults",
+            title = "English for Adults",
+            description = "Professional and conversational English for workplace communication, networking, and social interactions.",
+            targetAudience = "Adult Professionals & University Students",
+            iconEmoji = "💼",
+            levelIds = emptyList(),
+            isAvailable = false
+        )
+    )
+
+    override fun getPrograms(): Flow<Result<List<LearningProgram>>> {
+        return flowOf(Result.success(defaultPrograms))
+    }
+
+    override fun getProgram(programId: String): Flow<Result<LearningProgram?>> {
+        val program = defaultPrograms.firstOrNull { it.id == programId }
+        return flowOf(Result.success(program))
+    }
+
+    override fun getLevelsByProgram(programId: String): Flow<Result<List<Level>>> {
+        if (programId.isBlank()) return flowOf(Result.success(emptyList()))
+        return firestore.collection("levels")
+            .whereEqualTo("programId", programId)
+            .asFlow { it.toLevel() }
+            .map { result ->
+                result.map { levelsList ->
+                    if (levelsList.isEmpty() && programId == "program_beginner") {
+                        listOf(
+                            Level(
+                                id = "level_beginner_1",
+                                programId = "program_beginner",
+                                name = "Beginner 1: Foundations & Communication",
+                                description = "Master everyday vocabulary, practical dialogues, and essential grammar across 10 structured units.",
+                                order = 1,
+                                xpRequired = 900
+                            )
+                        )
+                    } else {
+                        levelsList.sortedBy { it.order }
+                    }
+                }
+            }
+    }
 
     override fun getLevels(): Flow<Result<List<Level>>> {
         return firestore.collection("levels")

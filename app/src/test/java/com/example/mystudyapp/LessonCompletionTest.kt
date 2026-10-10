@@ -3,6 +3,7 @@ package com.example.mystudyapp
 import com.example.mystudyapp.data.model.AuthState
 import com.example.mystudyapp.data.model.AuthUser
 import com.example.mystudyapp.data.model.Grammar
+import com.example.mystudyapp.data.model.LearningProgram
 import com.example.mystudyapp.data.model.Lesson
 import com.example.mystudyapp.data.model.LessonProgress
 import com.example.mystudyapp.data.model.Level
@@ -171,23 +172,18 @@ class LessonCompletionTest {
 
         val learnViewModel = LearnViewModel(
             authRepository = fakeAuthRepo,
-            userRepository = FakeUserRepository(profile = testProfile),
-            progressRepository = FakeProgressRepository(progress = testProgress),
             learningRepository = FakeLearningRepository(
-                level = Level(id = "level_3", name = "Explorer", xpRequired = 600),
-                units = listOf(Unit(id = "unit_3_1", levelId = "level_3", title = "Travel", order = 1)),
-                lessonsList = listOf(Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", order = 1), Lesson(id = "lesson_3_1_2", unitId = "unit_3_1", order = 2))
+                programsList = listOf(
+                    LearningProgram(id = "program_beginner", title = "Beginner English", description = "Description", targetAudience = "Beginners", iconEmoji = "🌱", levelIds = listOf("level_3"), isAvailable = true)
+                )
             )
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
 
         val learnState = learnViewModel.uiState.value
-        assertEquals(1, learnState.units.size)
-        val lessons = learnState.units[0].lessons
-        assertEquals(2, lessons.size)
-        assertFalse("First lesson is no longer current", lessons[0].isCurrentLesson)
-        assertTrue("Second lesson is now current", lessons[1].isCurrentLesson)
+        assertEquals(1, learnState.programs.size)
+        assertEquals("Beginner English", learnState.programs[0].title)
     }
 
     open class FakeAuthRepository(private val currentUser: AuthUser?) : AuthRepository {
@@ -222,11 +218,15 @@ class LessonCompletionTest {
     }
 
     open class FakeLearningRepository(
+        private val programsList: List<LearningProgram> = emptyList(),
         private val level: Level? = null,
         private val units: List<Unit> = emptyList(),
         private val lessonsList: List<Lesson> = emptyList(),
         private val lessonMap: Map<String, Lesson> = emptyMap()
     ) : LearningRepository {
+        override fun getPrograms(): Flow<Result<List<LearningProgram>>> = flowOf(Result.success(programsList))
+        override fun getProgram(programId: String): Flow<Result<LearningProgram?>> = flowOf(Result.success(programsList.firstOrNull { it.id == programId }))
+        override fun getLevelsByProgram(programId: String): Flow<Result<List<Level>>> = flowOf(Result.success(emptyList()))
         override fun getLevels(): Flow<Result<List<Level>>> = flowOf(Result.success(emptyList()))
         override fun getLevel(levelId: String): Flow<Result<Level?>> = flowOf(Result.success(level))
         override fun getUnitsByLevel(levelId: String): Flow<Result<List<Unit>>> = flowOf(Result.success(units))

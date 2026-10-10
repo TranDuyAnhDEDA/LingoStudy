@@ -21,6 +21,9 @@ import com.example.mystudyapp.ui.screen.auth.RegisterScreen
 import com.example.mystudyapp.ui.screen.grammar.GrammarScreen
 import com.example.mystudyapp.ui.screen.home.HomeScreen
 import com.example.mystudyapp.ui.screen.learn.LearnScreen
+import com.example.mystudyapp.ui.screen.learn.LevelUnitsScreen
+import com.example.mystudyapp.ui.screen.learn.ProgramOverviewScreen
+import com.example.mystudyapp.ui.screen.learn.UnitLessonsScreen
 import com.example.mystudyapp.ui.screen.lesson.LessonScreen
 import com.example.mystudyapp.ui.screen.listening.ListeningScreen
 import com.example.mystudyapp.ui.screen.pronunciation.PronunciationScreen
@@ -39,7 +42,7 @@ fun AppNavigation(
 
     val safeNavigate: (String) -> Unit = { route ->
         if (navController.currentDestination?.route != route) {
-            if (route.startsWith("lesson/") || route.startsWith("vocabulary/") || route.startsWith("grammar/") || route.startsWith("listening/") || route.startsWith("pronunciation/") || route.startsWith("quiz/")) {
+            if (route.startsWith("program/") || route.startsWith("level/") || route.startsWith("unit/") || route.startsWith("lesson/") || route.startsWith("vocabulary/") || route.startsWith("grammar/") || route.startsWith("listening/") || route.startsWith("pronunciation/") || route.startsWith("quiz/")) {
                 navController.navigate(route)
             } else {
                 navController.navigate(route) {
@@ -93,6 +96,45 @@ fun AppNavigation(
                     LearnScreen(onNavigate = safeNavigate)
                 }
                 composable(
+                    route = "program/{programId}",
+                    arguments = listOf(navArgument("programId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val programId = backStackEntry.arguments?.getString("programId") ?: ""
+                    ProgramOverviewScreen(
+                        programId = programId,
+                        onBackClick = { navController.popBackStack() },
+                        onSelectLevel = { levelId ->
+                            navController.navigate("level/$levelId")
+                        }
+                    )
+                }
+                composable(
+                    route = "level/{levelId}",
+                    arguments = listOf(navArgument("levelId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val levelId = backStackEntry.arguments?.getString("levelId") ?: ""
+                    LevelUnitsScreen(
+                        levelId = levelId,
+                        onBackClick = { navController.popBackStack() },
+                        onSelectUnit = { unitId ->
+                            navController.navigate("unit/$unitId")
+                        }
+                    )
+                }
+                composable(
+                    route = "unit/{unitId}",
+                    arguments = listOf(navArgument("unitId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val unitId = backStackEntry.arguments?.getString("unitId") ?: ""
+                    UnitLessonsScreen(
+                        unitId = unitId,
+                        onBackClick = { navController.popBackStack() },
+                        onSelectLesson = { lessonId ->
+                            navController.navigate("lesson/$lessonId")
+                        }
+                    )
+                }
+                composable(
                     route = "lesson/{lessonId}",
                     arguments = listOf(navArgument("lessonId") { type = NavType.StringType })
                 ) { backStackEntry ->
@@ -100,9 +142,11 @@ fun AppNavigation(
                     LessonScreen(
                         lessonId = lessonId,
                         onBackClick = { navController.popBackStack() },
-                        onStartLessonClick = {
-                            navController.navigate("vocabulary/$lessonId")
-                        }
+                        onNavigateToVocabulary = { navController.navigate("vocabulary/$lessonId") },
+                        onNavigateToGrammar = { navController.navigate("grammar/$lessonId") },
+                        onNavigateToListening = { navController.navigate("listening/$lessonId") },
+                        onNavigateToPronunciation = { navController.navigate("pronunciation/$lessonId") },
+                        onNavigateToQuiz = { navController.navigate("quiz/$lessonId") }
                     )
                 }
                 composable(

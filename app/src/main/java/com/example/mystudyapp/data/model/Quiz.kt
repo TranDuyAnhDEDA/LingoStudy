@@ -7,5 +7,6 @@ data class Quiz(
     val question: String = "",
     val options: List<String> = emptyList(),
     val correctAnswer: String = "",
-    val xpReward: Int = 0
+    val xpReward: Int = 0,
+    val order: Int = 0
 )

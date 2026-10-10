@@ -65,20 +65,62 @@ class ProgressRepositoryImpl(
             return Result.failure(Exception("Invalid user ID or lesson ID."))
         }
         return try {
-            val batch = firestore.batch()
-
-            val lessonRef = firestore.collection("user_progress")
+            val lessonDocRef = firestore.collection("user_progress")
                 .document(uid)
                 .collection("lessons")
                 .document(progress.lessonId)
 
-            batch.set(lessonRef, progress.toFirestoreMap(), SetOptions.merge())
+            val existingSnapshot = lessonDocRef.get().await()
+            val existingProgress = existingSnapshot.toLessonProgress()
+
+            val vocabDone = progress.vocabularyCompleted || (existingProgress?.vocabularyCompleted == true)
+            val grammarDone = progress.grammarCompleted || (existingProgress?.grammarCompleted == true)
+            val listeningDone = progress.listeningCompleted || (existingProgress?.listeningCompleted == true)
+            val pronunDone = progress.pronunciationCompleted || (existingProgress?.pronunciationCompleted == true)
+            val quizDone = progress.quizCompleted || (existingProgress?.quizCompleted == true)
+
+            var completedModulesCount = 0
+            if (vocabDone) completedModulesCount++
+            if (grammarDone) completedModulesCount++
+            if (listeningDone) completedModulesCount++
+            if (pronunDone) completedModulesCount++
+            if (quizDone) completedModulesCount++
+
+            val calculatedProgressPct = (completedModulesCount * 20).coerceAtMost(100)
+            val isOverallCompleted = (completedModulesCount == 5) || (existingProgress?.completed == true)
+
+            val lastVocabIndex = if (progress.lastVocabularyIndex > 0) progress.lastVocabularyIndex else (existingProgress?.lastVocabularyIndex ?: 0)
+            val lastGrammarIndex = if (progress.lastGrammarIndex > 0) progress.lastGrammarIndex else (existingProgress?.lastGrammarIndex ?: 0)
+            val lastListeningIndex = if (progress.lastListeningIndex > 0) progress.lastListeningIndex else (existingProgress?.lastListeningIndex ?: 0)
+            val lastPronunIndex = if (progress.lastPronunciationIndex > 0) progress.lastPronunciationIndex else (existingProgress?.lastPronunciationIndex ?: 0)
+            val lastQuizIndex = if (progress.lastQuizIndex > 0) progress.lastQuizIndex else (existingProgress?.lastQuizIndex ?: 0)
+            val quizScore = if (progress.quizScore > 0) progress.quizScore else (existingProgress?.quizScore ?: 0)
+
+            val mergedProgress = LessonProgress(
+                lessonId = progress.lessonId,
+                progress = calculatedProgressPct,
+                completed = isOverallCompleted,
+                vocabularyCompleted = vocabDone,
+                grammarCompleted = grammarDone,
+                listeningCompleted = listeningDone,
+                pronunciationCompleted = pronunDone,
+                quizCompleted = quizDone,
+                lastVocabularyIndex = lastVocabIndex,
+                lastGrammarIndex = lastGrammarIndex,
+                lastListeningIndex = lastListeningIndex,
+                lastPronunciationIndex = lastPronunIndex,
+                lastQuizIndex = lastQuizIndex,
+                quizScore = quizScore
+            )
+
+            val batch = firestore.batch()
+            batch.set(lessonDocRef, mergedProgress.toFirestoreMap(), SetOptions.merge())
 
             val parentUpdates = mutableMapOf<String, Any>()
-            if (progress.vocabularyCompleted) parentUpdates["vocabularyProgress"] = 100
-            if (progress.grammarCompleted) parentUpdates["grammarProgress"] = 100
-            if (progress.listeningCompleted) parentUpdates["listeningProgress"] = 100
-            if (progress.pronunciationCompleted) parentUpdates["pronunciationProgress"] = 100
+            if (vocabDone) parentUpdates["vocabularyProgress"] = 100
+            if (grammarDone) parentUpdates["grammarProgress"] = 100
+            if (listeningDone) parentUpdates["listeningProgress"] = 100
+            if (pronunDone) parentUpdates["pronunciationProgress"] = 100
 
             if (parentUpdates.isNotEmpty()) {
                 val userProgressRef = firestore.collection("user_progress").document(uid)

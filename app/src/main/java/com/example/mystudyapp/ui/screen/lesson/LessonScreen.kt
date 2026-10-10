@@ -58,7 +58,6 @@ import com.example.mystudyapp.ui.theme.LingoGreen
 import com.example.mystudyapp.ui.theme.LingoPink
 import com.example.mystudyapp.ui.theme.LingoPurple
 import com.example.mystudyapp.ui.theme.LingoYellow
-import com.example.mystudyapp.viewmodel.LessonUiState
 import com.example.mystudyapp.viewmodel.LessonViewModel
 import com.example.mystudyapp.viewmodel.LessonViewModelFactory
 
@@ -66,7 +65,11 @@ import com.example.mystudyapp.viewmodel.LessonViewModelFactory
 fun LessonScreen(
     lessonId: String,
     onBackClick: () -> Unit = {},
-    onStartLessonClick: () -> Unit = {},
+    onNavigateToVocabulary: () -> Unit = {},
+    onNavigateToGrammar: () -> Unit = {},
+    onNavigateToListening: () -> Unit = {},
+    onNavigateToPronunciation: () -> Unit = {},
+    onNavigateToQuiz: () -> Unit = {},
     viewModel: LessonViewModel = viewModel(factory = LessonViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -119,8 +122,17 @@ fun LessonScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(modifier = Modifier.padding(16.dp)) {
+                        val nextAction = when {
+                            !uiState.vocabularyCompleted -> onNavigateToVocabulary
+                            !uiState.grammarCompleted -> onNavigateToGrammar
+                            !uiState.listeningCompleted -> onNavigateToListening
+                            !uiState.pronunciationCompleted -> onNavigateToPronunciation
+                            !uiState.quizCompleted -> onNavigateToQuiz
+                            else -> onNavigateToVocabulary
+                        }
+
                         Button(
-                            onClick = { onStartLessonClick() },
+                            onClick = { nextAction() },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
@@ -131,7 +143,7 @@ fun LessonScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (uiState.isCompleted) "Lesson Complete ✓" else "Start Lesson",
+                                    text = if (uiState.isCompleted) "Review Lesson" else "Start Lesson",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -320,7 +332,7 @@ fun LessonScreen(
                             bgColor = CategoryVocabBg,
                             accentColor = LingoPink,
                             isCompleted = uiState.vocabularyCompleted,
-                            onClick = { onStartLessonClick() }
+                            onClick = onNavigateToVocabulary
                         )
 
                         ContentOverviewCard(
@@ -330,7 +342,7 @@ fun LessonScreen(
                             bgColor = CategoryGrammarBg,
                             accentColor = LingoYellow,
                             isCompleted = uiState.grammarCompleted,
-                            onClick = { onStartLessonClick() }
+                            onClick = onNavigateToGrammar
                         )
 
                         ContentOverviewCard(
@@ -340,7 +352,7 @@ fun LessonScreen(
                             bgColor = CategoryListeningBg,
                             accentColor = LingoPurple,
                             isCompleted = uiState.listeningCompleted,
-                            onClick = { onStartLessonClick() }
+                            onClick = onNavigateToListening
                         )
 
                         ContentOverviewCard(
@@ -350,7 +362,7 @@ fun LessonScreen(
                             bgColor = CategoryPronunBg,
                             accentColor = LingoGreen,
                             isCompleted = uiState.pronunciationCompleted,
-                            onClick = { onStartLessonClick() }
+                            onClick = onNavigateToPronunciation
                         )
 
                         ContentOverviewCard(
@@ -360,7 +372,7 @@ fun LessonScreen(
                             bgColor = Color(0xFFF1F5F9),
                             accentColor = LingoBlue,
                             isCompleted = uiState.quizCompleted,
-                            onClick = { onStartLessonClick() }
+                            onClick = onNavigateToQuiz
                         )
                     }
                 }

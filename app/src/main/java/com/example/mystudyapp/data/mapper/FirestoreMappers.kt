@@ -1,6 +1,7 @@
 package com.example.mystudyapp.data.mapper
 
 import com.example.mystudyapp.data.model.Grammar
+import com.example.mystudyapp.data.model.LearningProgram
 import com.example.mystudyapp.data.model.Lesson
 import com.example.mystudyapp.data.model.LessonProgress
 import com.example.mystudyapp.data.model.Level
@@ -102,10 +103,28 @@ fun UserProfile.toFirestoreMap(): Map<String, Any?> = mapOf(
     "lastActiveAt" to FieldValue.serverTimestamp()
 )
 
+@Suppress("UNCHECKED_CAST")
+fun DocumentSnapshot.toLearningProgram(): LearningProgram? {
+    if (!exists()) return null
+    return LearningProgram(
+        id = id,
+        title = getString("title") ?: "",
+        description = getString("description") ?: "",
+        targetAudience = getString("targetAudience") ?: "",
+        learningObjectives = (get("learningObjectives") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        order = getLong("order")?.toInt() ?: 0,
+        isPublished = getBoolean("isPublished") ?: true,
+        iconEmoji = getString("iconEmoji") ?: "",
+        levelIds = (get("levelIds") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        isAvailable = getBoolean("isAvailable") ?: true
+    )
+}
+
 fun DocumentSnapshot.toLevel(): Level? {
     if (!exists()) return null
     return Level(
         id = id,
+        programId = getString("programId") ?: "",
         name = getString("name") ?: "",
         description = getString("description") ?: "",
         order = getLong("order")?.toInt() ?: 0,
@@ -113,28 +132,37 @@ fun DocumentSnapshot.toLevel(): Level? {
     )
 }
 
+@Suppress("UNCHECKED_CAST")
 fun DocumentSnapshot.toUnitModel(): Unit? {
     if (!exists()) return null
     return Unit(
         id = id,
         levelId = getString("levelId") ?: "",
+        programId = getString("programId") ?: "",
         title = getString("title") ?: "",
         description = getString("description") ?: "",
         order = getLong("order")?.toInt() ?: 0,
-        imageUrl = getString("imageUrl")
+        learningObjectives = (get("learningObjectives") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        estimatedMinutes = getLong("estimatedMinutes")?.toInt() ?: 0,
+        imageUrl = getString("imageUrl"),
+        isPublished = getBoolean("isPublished") ?: true
     )
 }
 
+@Suppress("UNCHECKED_CAST")
 fun DocumentSnapshot.toLesson(): Lesson? {
     if (!exists()) return null
     return Lesson(
         id = id,
         unitId = getString("unitId") ?: "",
+        programId = getString("programId") ?: "",
         title = getString("title") ?: "",
         description = getString("description") ?: "",
         order = getLong("order")?.toInt() ?: 0,
         estimatedMinutes = getLong("estimatedMinutes")?.toInt() ?: 0,
-        xpReward = getLong("xpReward")?.toInt() ?: 0
+        xpReward = getLong("xpReward")?.toInt() ?: 0,
+        learningObjectives = (get("learningObjectives") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        isPublished = getBoolean("isPublished") ?: true
     )
 }
 
@@ -149,7 +177,8 @@ fun DocumentSnapshot.toVocabulary(): Vocabulary? {
         example = getString("example") ?: "",
         translation = getString("translation") ?: "",
         audioUrl = getString("audioUrl"),
-        imageUrl = getString("imageUrl")
+        imageUrl = getString("imageUrl"),
+        order = getLong("order")?.toInt() ?: 0
     )
 }
 
@@ -187,7 +216,8 @@ fun DocumentSnapshot.toPronunciation(): Pronunciation? {
         word = getString("word") ?: "",
         phonetic = getString("phonetic") ?: "",
         audioUrl = getString("audioUrl"),
-        targetScore = getLong("targetScore")?.toInt() ?: 0
+        targetScore = getLong("targetScore")?.toInt() ?: 0,
+        order = getLong("order")?.toInt() ?: 0
     )
 }
 
@@ -201,7 +231,8 @@ fun DocumentSnapshot.toQuiz(): Quiz? {
         question = getString("question") ?: "",
         options = (get("options") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
         correctAnswer = getString("correctAnswer") ?: "",
-        xpReward = getLong("xpReward")?.toInt() ?: 0
+        xpReward = getLong("xpReward")?.toInt() ?: 0,
+        order = getLong("order")?.toInt() ?: 0
     )
 }
 

@@ -9,5 +9,6 @@ data class Vocabulary(
     val example: String = "",
     val translation: String = "",
     val audioUrl: String? = null,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val order: Int = 0
 )
