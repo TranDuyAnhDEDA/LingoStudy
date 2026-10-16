@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mystudyapp.data.model.LessonProgress
+import com.example.mystudyapp.data.model.Listening
 import com.example.mystudyapp.data.repository.AuthRepository
 import com.example.mystudyapp.data.repository.AuthRepositoryImpl
 import com.example.mystudyapp.data.repository.LearningRepository
@@ -94,7 +95,7 @@ class ListeningViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            lessonTitle = lesson?.title ?: "Listening Lesson",
+                            lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Luyện nghe bài học",
                             listeningList = emptyList(),
                             errorMessage = null
                         )
@@ -114,25 +115,23 @@ class ListeningViewModel(
                 }
 
                 val lastIndex = lessonProgress?.lastListeningIndex ?: 0
-                val startingIndex = if (lastIndex in uiModels.indices && !(lessonProgress?.listeningCompleted == true)) {
+                val isAlreadyFinished = (lessonProgress?.listeningCompleted == true)
+                val startingIndex = if (lastIndex in uiModels.indices && !isAlreadyFinished) {
                     lastIndex
                 } else {
                     0
                 }
-
-                val isAlreadyFinished = (lessonProgress?.listeningCompleted == true)
-                val completedCount = if (isAlreadyFinished) uiModels.size else startingIndex
 
                 _uiState.value = ListeningUiState(
                     isLoading = false,
                     isAuthenticated = true,
                     errorMessage = null,
                     lessonId = lessonId,
-                    lessonTitle = lesson?.title ?: "Listening Lesson",
+                    lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Luyện nghe bài học",
                     listeningList = uiModels,
-                    currentIndex = if (isAlreadyFinished) uiModels.size - 1 else startingIndex,
-                    completedCount = completedCount,
-                    isFinished = isAlreadyFinished
+                    currentIndex = startingIndex,
+                    completedCount = if (isAlreadyFinished) uiModels.size else startingIndex,
+                    isFinished = false
                 )
             }
         }
@@ -224,15 +223,24 @@ class ListeningViewModel(
         }
     }
 
+    fun restartReview() {
+        _uiState.update {
+            it.copy(
+                currentIndex = 0,
+                isFinished = false
+            )
+        }
+    }
+
     private suspend fun getExistingProgress(uid: String): LessonProgress? {
         return progressRepository.getLessonProgress(uid, lessonId).firstOrNull()?.getOrNull()
     }
 
     private fun calculateLessonProgressPct(vocabDone: Boolean, grammarDone: Boolean, listeningDone: Boolean): Int {
         var pct = 0
-        if (vocabDone) pct += 20
-        if (grammarDone) pct += 20
-        if (listeningDone) pct += 20
+        if (vocabDone) pct += 25
+        if (grammarDone) pct += 25
+        if (listeningDone) pct += 25
         return pct
     }
 }

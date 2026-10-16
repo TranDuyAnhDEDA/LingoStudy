@@ -94,7 +94,7 @@ class QuizViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            lessonTitle = lesson?.title ?: "Quiz",
+                            lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Bài kiểm tra",
                             quizList = emptyList(),
                             errorMessage = null
                         )
@@ -114,24 +114,23 @@ class QuizViewModel(
 
                 val lastIndex = lessonProgress?.lastQuizIndex ?: 0
                 val startingScore = lessonProgress?.quizScore ?: 0
-                val startingIndex = if (lastIndex in uiModels.indices && !(lessonProgress?.quizCompleted == true)) {
+                val isAlreadyFinished = (lessonProgress?.quizCompleted == true)
+                val startingIndex = if (lastIndex in uiModels.indices && !isAlreadyFinished) {
                     lastIndex
                 } else {
                     0
                 }
-
-                val isAlreadyFinished = (lessonProgress?.quizCompleted == true)
 
                 _uiState.value = QuizUiState(
                     isLoading = false,
                     isAuthenticated = true,
                     errorMessage = null,
                     lessonId = lessonId,
-                    lessonTitle = lesson?.title ?: "Quiz",
+                    lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Bài kiểm tra",
                     quizList = uiModels,
-                    currentIndex = if (isAlreadyFinished) uiModels.size - 1 else startingIndex,
-                    currentScore = startingScore,
-                    isFinished = isAlreadyFinished
+                    currentIndex = startingIndex,
+                    currentScore = if (!isAlreadyFinished) startingScore else 0,
+                    isFinished = false
                 )
             }
         }
@@ -217,7 +216,7 @@ class QuizViewModel(
                             pronunDone = progressObj?.pronunciationCompleted == true,
                             quizDone = true
                         ),
-                        completed = false, // Lesson completed will be aggregate later
+                        completed = false,
                         vocabularyCompleted = progressObj?.vocabularyCompleted == true,
                         grammarCompleted = progressObj?.grammarCompleted == true,
                         listeningCompleted = progressObj?.listeningCompleted == true,
@@ -258,6 +257,19 @@ class QuizViewModel(
         }
     }
 
+    fun retakeQuiz() {
+        _uiState.update {
+            it.copy(
+                currentIndex = 0,
+                selectedOption = null,
+                isSubmitted = false,
+                isCorrect = false,
+                currentScore = 0,
+                isFinished = false
+            )
+        }
+    }
+
     private suspend fun getExistingProgress(uid: String): LessonProgress? {
         return progressRepository.getLessonProgress(uid, lessonId).firstOrNull()?.getOrNull()
     }
@@ -270,12 +282,11 @@ class QuizViewModel(
         quizDone: Boolean
     ): Int {
         var pct = 0
-        if (vocabDone) pct += 20
-        if (grammarDone) pct += 20
-        if (listeningDone) pct += 20
-        if (pronunDone) pct += 20
-        if (quizDone) pct += 20
-        return pct
+        if (vocabDone) pct += 25
+        if (grammarDone) pct += 25
+        if (listeningDone) pct += 25
+        if (quizDone) pct += 25
+        return pct.coerceAtMost(100)
     }
 }
 

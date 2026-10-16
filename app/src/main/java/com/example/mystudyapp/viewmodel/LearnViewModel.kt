@@ -70,9 +70,9 @@ class LearnViewModel(
                             val uiModels = programsList.map { p ->
                                 ProgramUiModel(
                                     id = p.id,
-                                    title = p.title,
-                                    description = p.description,
-                                    targetAudience = p.targetAudience,
+                                    title = p.titleVi ?: p.title,
+                                    description = p.descriptionVi ?: p.description,
+                                    targetAudience = p.targetAudienceVi ?: p.targetAudience,
                                     iconEmoji = p.iconEmoji,
                                     isAvailable = p.isAvailable,
                                     levelCount = p.levelIds.size

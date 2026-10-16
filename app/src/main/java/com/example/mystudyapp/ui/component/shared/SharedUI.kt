@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -66,10 +66,10 @@ data class NavItemData(val label: String, val icon: ImageVector)
 @Composable
 fun LingoBottomNav(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
     val navItems = listOf(
-        NavItemData("Home",     Icons.Default.Home),
-        NavItemData("Learn",    Icons.Default.AutoStories),
-        NavItemData("Practice", Icons.Default.SportsEsports),
-        NavItemData("Me",       Icons.Default.Person)
+        NavItemData("Home",       Icons.Default.Home),
+        NavItemData("Learn",      Icons.Default.AutoStories),
+        NavItemData("Dictionary", Icons.Default.Translate),
+        NavItemData("Me",         Icons.Default.Person)
     )
 
     NavigationBar(

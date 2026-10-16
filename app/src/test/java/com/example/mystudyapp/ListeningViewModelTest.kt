@@ -74,8 +74,8 @@ class ListeningViewModelTest {
 
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
-        val list1 = Listening("l1", "lesson_3_1_1", "At the Airport Part 1", "", "Transcript 1", "medium", order = 1)
-        val list2 = Listening("l2", "lesson_3_1_1", "At the Airport Part 2", "", "Transcript 2", "medium", order = 2)
+        val list1 = Listening("l1", "lesson_3_1_1", "At the Airport Part 1", null, "", "Transcript 1", null, "medium", order = 1)
+        val list2 = Listening("l2", "lesson_3_1_1", "At the Airport Part 2", null, "", "Transcript 2", null, "medium", order = 2)
 
         val fakeLearningRepo = FakeLearningRepository(
             lessonMap = mapOf("lesson_3_1_1" to testLesson),
@@ -127,8 +127,8 @@ class ListeningViewModelTest {
 
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
-        val list1 = Listening("l1", "lesson_3_1_1", "Part 1", "", "Transcript 1", order = 1)
-        val list2 = Listening("l2", "lesson_3_1_1", "Part 2", "", "Transcript 2", order = 2)
+        val list1 = Listening("l1", "lesson_3_1_1", "Part 1", null, "", "Transcript 1", null, order = 1)
+        val list2 = Listening("l2", "lesson_3_1_1", "Part 2", null, "", "Transcript 2", null, order = 2)
 
         val lessonProgress = LessonProgress(lessonId = "lesson_3_1_1", lastListeningIndex = 1, listeningCompleted = false)
 

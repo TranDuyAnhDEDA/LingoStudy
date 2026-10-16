@@ -74,8 +74,8 @@ class QuizViewModelTest {
 
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
-        val q1 = Quiz("q1", "lesson_3_1_1", "multiple_choice", "Question 1?", listOf("Opt A", "Opt B", "Opt C"), "Opt A", 10)
-        val q2 = Quiz("q2", "lesson_3_1_1", "multiple_choice", "Question 2?", listOf("Opt A", "Opt B", "Opt C"), "Opt B", 10)
+        val q1 = Quiz("q1", "lesson_3_1_1", "multiple_choice", "Question 1?", null, listOf("Opt A", "Opt B", "Opt C"), "Opt A", null, 10, 1)
+        val q2 = Quiz("q2", "lesson_3_1_1", "multiple_choice", "Question 2?", null, listOf("Opt A", "Opt B", "Opt C"), "Opt B", null, 10, 2)
 
         val fakeLearningRepo = FakeLearningRepository(
             lessonMap = mapOf("lesson_3_1_1" to testLesson),
@@ -143,8 +143,8 @@ class QuizViewModelTest {
 
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
-        val q1 = Quiz("q1", "lesson_3_1_1", "multiple_choice", "Question 1?", listOf("A", "B"), "A", 10)
-        val q2 = Quiz("q2", "lesson_3_1_1", "multiple_choice", "Question 2?", listOf("A", "B"), "B", 10)
+        val q1 = Quiz("q1", "lesson_3_1_1", "multiple_choice", "Question 1?", null, listOf("A", "B"), "A", null, 10, 1)
+        val q2 = Quiz("q2", "lesson_3_1_1", "multiple_choice", "Question 2?", null, listOf("A", "B"), "B", null, 10, 2)
 
         val lessonProgress = LessonProgress(
             lessonId = "lesson_3_1_1",

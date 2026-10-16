@@ -104,7 +104,7 @@ fun LevelUnitsScreen(
                     Spacer(Modifier.width(16.dp))
 
                     Text(
-                        text = uiState.level?.name ?: "Level Journey",
+                        text = uiState.level?.nameVi ?: uiState.level?.name ?: "Hành trình cấp độ",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E3A8A)
@@ -155,7 +155,7 @@ fun LevelUnitsScreen(
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
                                     Text(
-                                        text = "LEVEL ${level?.order ?: 1} · ADVENTURE MAP",
+                                        text = "CẤP ĐỘ ${level?.order ?: 1} · BẢN ĐỒ LỘ TRÌNH",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = Color(0xFF065F46),
@@ -166,16 +166,17 @@ fun LevelUnitsScreen(
                                 Spacer(Modifier.height(10.dp))
 
                                 Text(
-                                    text = level?.name ?: "Learning Journey",
+                                    text = level?.nameVi ?: level?.name ?: "Hành trình học tập",
                                     fontSize = 22.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color(0xFF1E3A8A)
                                 )
 
-                                if (level?.description?.isNotBlank() == true) {
+                                val lvlDesc = level?.descriptionVi ?: level?.description
+                                if (!lvlDesc.isNullOrBlank()) {
                                     Spacer(Modifier.height(6.dp))
                                     Text(
-                                        text = level.description,
+                                        text = lvlDesc,
                                         fontSize = 13.sp,
                                         color = Color(0xFF475569),
                                         lineHeight = 18.sp
@@ -193,7 +194,7 @@ fun LevelUnitsScreen(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        text = "${uiState.units.size} Milestone Units Connected",
+                                        text = "${uiState.units.size} bài học được kết nối",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = LingoBlue
@@ -206,7 +207,7 @@ fun LevelUnitsScreen(
 
                 item {
                     Text(
-                        text = "Curriculum Path",
+                        text = "Lộ trình học tập",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1E3A8A)
@@ -299,7 +300,7 @@ fun LevelUnitsScreen(
                                                 shape = RoundedCornerShape(10.dp)
                                             ) {
                                                 Text(
-                                                    text = "MILESTONE ${unit.order}",
+                                                    text = "BÀI HỌC ${unit.order}",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.ExtraBold,
                                                     color = Color(0xFF1E3A8A),
@@ -326,16 +327,17 @@ fun LevelUnitsScreen(
                                         Spacer(Modifier.height(10.dp))
 
                                         Text(
-                                            text = unit.title,
+                                            text = unit.titleVi ?: unit.title,
                                             fontSize = 17.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF1E3A8A)
                                         )
 
-                                        if (unit.description.isNotBlank()) {
+                                        val uDesc = unit.descriptionVi ?: unit.description
+                                        if (uDesc.isNotBlank()) {
                                             Spacer(Modifier.height(4.dp))
                                             Text(
-                                                text = unit.description,
+                                                text = uDesc,
                                                 fontSize = 13.sp,
                                                 color = Color(0xFF334155),
                                                 lineHeight = 18.sp
@@ -353,7 +355,7 @@ fun LevelUnitsScreen(
                                             colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text("Explore Unit Journey", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                                Text("Khám phá bài học", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                                 Spacer(Modifier.width(6.dp))
                                                 Icon(
                                                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,

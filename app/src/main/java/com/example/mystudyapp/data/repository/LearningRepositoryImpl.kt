@@ -18,8 +18,8 @@ import com.example.mystudyapp.data.model.Pronunciation
 import com.example.mystudyapp.data.model.Quiz
 import com.example.mystudyapp.data.model.Unit
 import com.example.mystudyapp.data.model.Vocabulary
+import com.example.mystudyapp.data.seed.BeginnerCurriculumData
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -32,17 +32,23 @@ class LearningRepositoryImpl(
         LearningProgram(
             id = "program_beginner",
             title = "Beginner English",
+            titleVi = "Tiếng Anh cho người mới bắt đầu",
             description = "Build a strong foundation with practical everyday situations, travel, and basic conversations.",
+            descriptionVi = "Học từ những lời chào cơ bản đến giao tiếp trong các tình huống quen thuộc hằng ngày.",
             targetAudience = "Beginners & Intermediate Learners",
+            targetAudienceVi = "Người mới bắt đầu & Trình độ cơ bản",
             iconEmoji = "🌱",
-            levelIds = listOf("level_3"),
+            levelIds = listOf("level_beginner_1"),
             isAvailable = true
         ),
         LearningProgram(
             id = "program_kids",
             title = "English for Kids",
+            titleVi = "Tiếng Anh cho trẻ em",
             description = "Fun, interactive lessons with playful songs, colorful stories, and foundational words for young learners.",
+            descriptionVi = "Học tiếng Anh qua trò chơi, bài hát, câu chuyện và những từ vựng gần gũi.",
             targetAudience = "Children & Young Learners",
+            targetAudienceVi = "Trẻ em & Mầm non",
             iconEmoji = "🧸",
             levelIds = emptyList(),
             isAvailable = false
@@ -50,8 +56,11 @@ class LearningRepositoryImpl(
         LearningProgram(
             id = "program_adults",
             title = "English for Adults",
+            titleVi = "Tiếng Anh cho người đi làm",
             description = "Professional and conversational English for workplace communication, networking, and social interactions.",
+            descriptionVi = "Phát triển kỹ năng giao tiếp công việc, hội họp, phỏng vấn và trao đổi chuyên nghiệp.",
             targetAudience = "Adult Professionals & University Students",
+            targetAudienceVi = "Người đi làm & Sinh viên",
             iconEmoji = "💼",
             levelIds = emptyList(),
             isAvailable = false
@@ -80,7 +89,9 @@ class LearningRepositoryImpl(
                                 id = "level_beginner_1",
                                 programId = "program_beginner",
                                 name = "Beginner 1: Foundations & Communication",
+                                nameVi = "Beginner 1: Nền tảng & Giao tiếp",
                                 description = "Master everyday vocabulary, practical dialogues, and essential grammar across 10 structured units.",
+                                descriptionVi = "Thành thạo từ vựng hàng ngày, hội thoại thực tế và ngữ pháp thiết yếu qua 10 bài học.",
                                 order = 1,
                                 xpRequired = 900
                             )
@@ -94,8 +105,8 @@ class LearningRepositoryImpl(
 
     override fun getLevels(): Flow<Result<List<Level>>> {
         return firestore.collection("levels")
-            .orderBy("order", Query.Direction.ASCENDING)
             .asFlow { it.toLevel() }
+            .map { result -> result.map { list -> list.sortedBy { it.order } } }
     }
 
     override fun getLevel(levelId: String): Flow<Result<Level?>> {
@@ -109,8 +120,16 @@ class LearningRepositoryImpl(
         if (levelId.isBlank()) return flowOf(Result.success(emptyList()))
         return firestore.collection("units")
             .whereEqualTo("levelId", levelId)
-            .orderBy("order", Query.Direction.ASCENDING)
             .asFlow { it.toUnitModel() }
+            .map { result ->
+                result.map { list ->
+                    if (list.isEmpty() && levelId == "level_beginner_1") {
+                        BeginnerCurriculumData.units
+                    } else {
+                        (list + BeginnerCurriculumData.units).distinctBy { it.id }.sortedBy { it.order }
+                    }
+                }
+            }
     }
 
     override fun getUnit(unitId: String): Flow<Result<Unit?>> {
@@ -118,14 +137,24 @@ class LearningRepositoryImpl(
         return firestore.collection("units")
             .document(unitId)
             .asFlow { it.toUnitModel() }
+            .map { result ->
+                result.map { unit ->
+                    unit ?: BeginnerCurriculumData.units.firstOrNull { it.id == unitId }
+                }
+            }
     }
 
     override fun getLessonsByUnit(unitId: String): Flow<Result<List<Lesson>>> {
         if (unitId.isBlank()) return flowOf(Result.success(emptyList()))
         return firestore.collection("lessons")
             .whereEqualTo("unitId", unitId)
-            .orderBy("order", Query.Direction.ASCENDING)
             .asFlow { it.toLesson() }
+            .map { result ->
+                result.map { list ->
+                    val seedLessons = BeginnerCurriculumData.lessons.filter { it.unitId == unitId }
+                    (list + seedLessons).distinctBy { it.id }.sortedBy { it.order }
+                }
+            }
     }
 
     override fun getLesson(lessonId: String): Flow<Result<Lesson?>> {
@@ -133,6 +162,11 @@ class LearningRepositoryImpl(
         return firestore.collection("lessons")
             .document(lessonId)
             .asFlow { it.toLesson() }
+            .map { result ->
+                result.map { lesson ->
+                    lesson ?: BeginnerCurriculumData.lessons.firstOrNull { it.id == lessonId }
+                }
+            }
     }
 
     override fun getVocabularyByLesson(lessonId: String): Flow<Result<List<Vocabulary>>> {
@@ -140,6 +174,12 @@ class LearningRepositoryImpl(
         return firestore.collection("vocabulary")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toVocabulary() }
+            .map { result ->
+                result.map { list ->
+                    val seedVocabs = BeginnerCurriculumData.sampleVocabularies.filter { it.lessonId == lessonId }
+                    (list + seedVocabs).distinctBy { it.id }.sortedBy { it.order }
+                }
+            }
     }
 
     override fun getGrammarByLesson(lessonId: String): Flow<Result<List<Grammar>>> {
@@ -147,6 +187,12 @@ class LearningRepositoryImpl(
         return firestore.collection("grammar")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toGrammar() }
+            .map { result ->
+                result.map { list ->
+                    val seedGrammars = BeginnerCurriculumData.sampleGrammars.filter { it.lessonId == lessonId }
+                    (list + seedGrammars).distinctBy { it.id }.sortedBy { it.order }
+                }
+            }
     }
 
     override fun getListeningByLesson(lessonId: String): Flow<Result<List<Listening>>> {
@@ -154,6 +200,12 @@ class LearningRepositoryImpl(
         return firestore.collection("listening")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toListening() }
+            .map { result ->
+                result.map { list ->
+                    val seedListenings = BeginnerCurriculumData.sampleListenings.filter { it.lessonId == lessonId }
+                    (list + seedListenings).distinctBy { it.id }.sortedBy { it.order }
+                }
+            }
     }
 
     override fun getPronunciationByLesson(lessonId: String): Flow<Result<List<Pronunciation>>> {
@@ -161,6 +213,12 @@ class LearningRepositoryImpl(
         return firestore.collection("pronunciation")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toPronunciation() }
+            .map { result ->
+                result.map { list ->
+                    val seedPronuns = BeginnerCurriculumData.samplePronunciations.filter { it.lessonId == lessonId }
+                    (list + seedPronuns).distinctBy { it.id }.sortedBy { it.order }
+                }
+            }
     }
 
     override fun getQuizzesByLesson(lessonId: String): Flow<Result<List<Quiz>>> {
@@ -168,5 +226,11 @@ class LearningRepositoryImpl(
         return firestore.collection("quizzes")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toQuiz() }
+            .map { result ->
+                result.map { list ->
+                    val seedQuizzes = BeginnerCurriculumData.sampleQuizzes.filter { it.lessonId == lessonId }
+                    (list + seedQuizzes).distinctBy { it.id }.sortedBy { it.order }
+                }
+            }
     }
 }

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mystudyapp.ui.component.ActiveStudyTimeTracker
 import com.example.mystudyapp.ui.theme.CategoryGrammarBg
 import com.example.mystudyapp.ui.theme.CategoryListeningBg
 import com.example.mystudyapp.ui.theme.CategoryPronunBg
@@ -73,6 +74,8 @@ fun LessonScreen(
     viewModel: LessonViewModel = viewModel(factory = LessonViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    ActiveStudyTimeTracker(lessonId = lessonId)
 
     Scaffold(
         containerColor = Color(0xFFF8FAFF),
@@ -106,7 +109,7 @@ fun LessonScreen(
                     Spacer(Modifier.width(16.dp))
 
                     Text(
-                        text = uiState.title.ifBlank { "Lesson Details" },
+                        text = uiState.title.ifBlank { "Chi tiết bài học" },
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E3A8A)
@@ -126,7 +129,6 @@ fun LessonScreen(
                             !uiState.vocabularyCompleted -> onNavigateToVocabulary
                             !uiState.grammarCompleted -> onNavigateToGrammar
                             !uiState.listeningCompleted -> onNavigateToListening
-                            !uiState.pronunciationCompleted -> onNavigateToPronunciation
                             !uiState.quizCompleted -> onNavigateToQuiz
                             else -> onNavigateToVocabulary
                         }
@@ -143,7 +145,7 @@ fun LessonScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (uiState.isCompleted) "Review Lesson" else "Start Lesson",
+                                    text = if (uiState.isCompleted) "Ôn tập bài học" else "Bắt đầu bài học",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -179,7 +181,7 @@ fun LessonScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = uiState.errorMessage ?: "Failed to load lesson.",
+                    text = uiState.errorMessage ?: "Không thể tải bài học.",
                     fontSize = 16.sp,
                     color = Color.Red,
                     textAlign = TextAlign.Center,
@@ -212,7 +214,7 @@ fun LessonScreen(
                                     modifier = Modifier.padding(end = 12.dp)
                                 ) {
                                     Text(
-                                        text = "Lesson ${uiState.order}",
+                                        text = "Bài ${uiState.order}",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = LingoBlue,
@@ -237,7 +239,7 @@ fun LessonScreen(
                                             )
                                             Spacer(Modifier.width(4.dp))
                                             Text(
-                                                text = "Completed (+${uiState.xpReward} XP)",
+                                                text = "Đã hoàn thành (+${uiState.xpReward} XP)",
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = LingoGreen
@@ -272,7 +274,7 @@ fun LessonScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                InfoChip(emoji = "⏱️", text = "${uiState.estimatedMinutes} mins")
+                                InfoChip(emoji = "⏱️", text = "${uiState.estimatedMinutes} phút")
                                 InfoChip(emoji = "⭐", text = "+${uiState.xpReward} XP")
                             }
 
@@ -286,7 +288,7 @@ fun LessonScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Lesson Progress",
+                                        text = "Tiến độ bài học",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = LingoGray
@@ -316,7 +318,7 @@ fun LessonScreen(
 
                 item {
                     Text(
-                        text = "Content Overview",
+                        text = "Các kỹ năng cần học",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E3A8A)
@@ -326,8 +328,8 @@ fun LessonScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         ContentOverviewCard(
-                            title = "Vocabulary",
-                            countText = "${uiState.vocabularyCount} words",
+                            title = "Từ vựng",
+                            countText = "${uiState.vocabularyCount} từ vựng",
                             icon = Icons.Default.AutoStories,
                             bgColor = CategoryVocabBg,
                             accentColor = LingoPink,
@@ -336,8 +338,8 @@ fun LessonScreen(
                         )
 
                         ContentOverviewCard(
-                            title = "Grammar",
-                            countText = "${uiState.grammarCount} topic(s)",
+                            title = "Ngữ pháp",
+                            countText = "${uiState.grammarCount} chủ đề",
                             icon = Icons.Default.School,
                             bgColor = CategoryGrammarBg,
                             accentColor = LingoYellow,
@@ -346,8 +348,8 @@ fun LessonScreen(
                         )
 
                         ContentOverviewCard(
-                            title = "Listening",
-                            countText = "${uiState.listeningCount} exercise(s)",
+                            title = "Luyện nghe",
+                            countText = "${uiState.listeningCount} bài nghe",
                             icon = Icons.AutoMirrored.Filled.VolumeUp,
                             bgColor = CategoryListeningBg,
                             accentColor = LingoPurple,
@@ -356,18 +358,18 @@ fun LessonScreen(
                         )
 
                         ContentOverviewCard(
-                            title = "Pronunciation",
-                            countText = "${uiState.pronunciationCount} word(s)",
+                            title = "Phát âm (Tạm ẩn)",
+                            countText = "Bỏ qua cho bài học này",
                             icon = Icons.Default.Mic,
-                            bgColor = CategoryPronunBg,
-                            accentColor = LingoGreen,
-                            isCompleted = uiState.pronunciationCompleted,
-                            onClick = onNavigateToPronunciation
+                            bgColor = Color(0xFFF1F5F9),
+                            accentColor = Color(0xFF94A3B8),
+                            isCompleted = false,
+                            onClick = {}
                         )
 
                         ContentOverviewCard(
-                            title = "Quizzes",
-                            countText = "${uiState.quizCount} question(s)",
+                            title = "Bài kiểm tra",
+                            countText = "${uiState.quizCount} câu hỏi",
                             icon = Icons.Default.Psychology,
                             bgColor = Color(0xFFF1F5F9),
                             accentColor = LingoBlue,

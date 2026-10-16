@@ -83,33 +83,33 @@ class LessonViewModelTest {
         )
 
         val vocabList = listOf(
-            Vocabulary("v1", "lesson_3_1_1", "boarding pass", "thẻ lên máy bay"),
-            Vocabulary("v2", "lesson_3_1_1", "passport", "hộ chiếu"),
-            Vocabulary("v3", "lesson_3_1_1", "luggage", "hành lý"),
-            Vocabulary("v4", "lesson_3_1_1", "departure", "sự khởi hành"),
-            Vocabulary("v5", "lesson_3_1_1", "gate", "cổng")
+            Vocabulary("v1", "lesson_3_1_1", "boarding pass", "thẻ lên máy bay", null, "noun", "", null, "", null, null, 1),
+            Vocabulary("v2", "lesson_3_1_1", "passport", "hộ chiếu", null, "noun", "", null, "", null, null, 2),
+            Vocabulary("v3", "lesson_3_1_1", "luggage", "hành lý", null, "noun", "", null, "", null, null, 3),
+            Vocabulary("v4", "lesson_3_1_1", "departure", "sự khởi hành", null, "noun", "", null, "", null, null, 4),
+            Vocabulary("v5", "lesson_3_1_1", "gate", "cổng", null, "noun", "", null, "", null, null, 5)
         )
 
         val grammarList = listOf(
-            Grammar("g1", "lesson_3_1_1", "Present Perfect", "Explanation", listOf("Example 1"))
+            Grammar("g1", "lesson_3_1_1", "Present Perfect", null, "Explanation", null, listOf("Example 1"))
         )
 
         val listeningList = listOf(
-            Listening("l1", "lesson_3_1_1", "At the Airport", "", "Transcript", "medium", 1)
+            Listening("l1", "lesson_3_1_1", "At the Airport", null, "", "Transcript", null, "medium", 1)
         )
 
         val pronunList = listOf(
-            Pronunciation("p1", "lesson_3_1_1", "airport", "/ˈeəpɔːt/"),
-            Pronunciation("p2", "lesson_3_1_1", "boarding", "/ˈbɔːdɪŋ/"),
-            Pronunciation("p3", "lesson_3_1_1", "passport", "/ˈpɑːspɔːt/")
+            Pronunciation("p1", "lesson_3_1_1", "airport", "/ˈeəpɔːt/", null, 80, null, 1),
+            Pronunciation("p2", "lesson_3_1_1", "boarding", "/ˈbɔːdɪŋ/", null, 80, null, 2),
+            Pronunciation("p3", "lesson_3_1_1", "passport", "/ˈpɑːspɔːt/", null, 80, null, 3)
         )
 
         val quizList = listOf(
-            Quiz("q1", "lesson_3_1_1", "multiple_choice", "Question 1", listOf("Opt 1"), "Opt 1", 10),
-            Quiz("q2", "lesson_3_1_1", "multiple_choice", "Question 2", listOf("Opt 1"), "Opt 1", 10),
-            Quiz("q3", "lesson_3_1_1", "multiple_choice", "Question 3", listOf("Opt 1"), "Opt 1", 10),
-            Quiz("q4", "lesson_3_1_1", "multiple_choice", "Question 4", listOf("Opt 1"), "Opt 1", 10),
-            Quiz("q5", "lesson_3_1_1", "multiple_choice", "Question 5", listOf("Opt 1"), "Opt 1", 10)
+            Quiz("q1", "lesson_3_1_1", "multiple_choice", "Question 1", null, listOf("Opt 1"), "Opt 1", null, 10),
+            Quiz("q2", "lesson_3_1_1", "multiple_choice", "Question 2", null, listOf("Opt 1"), "Opt 1", null, 10),
+            Quiz("q3", "lesson_3_1_1", "multiple_choice", "Question 3", null, listOf("Opt 1"), "Opt 1", null, 10),
+            Quiz("q4", "lesson_3_1_1", "multiple_choice", "Question 4", null, listOf("Opt 1"), "Opt 1", null, 10),
+            Quiz("q5", "lesson_3_1_1", "multiple_choice", "Question 5", null, listOf("Opt 1"), "Opt 1", null, 10)
         )
 
         val lessonProgress = LessonProgress(lessonId = "lesson_3_1_1", progress = 100, completed = true)

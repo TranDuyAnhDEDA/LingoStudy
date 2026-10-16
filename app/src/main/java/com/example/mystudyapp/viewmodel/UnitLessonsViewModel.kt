@@ -12,10 +12,13 @@ import com.example.mystudyapp.data.repository.LearningRepository
 import com.example.mystudyapp.data.repository.LearningRepositoryImpl
 import com.example.mystudyapp.data.repository.ProgressRepository
 import com.example.mystudyapp.data.repository.ProgressRepositoryImpl
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -46,6 +49,7 @@ class UnitLessonsViewModel(
         loadData()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun loadData() {
         if (unitId.isBlank()) {
             _uiState.update { it.copy(isLoading = false, errorMessage = "Invalid unit ID.") }
@@ -53,36 +57,52 @@ class UnitLessonsViewModel(
         }
 
         viewModelScope.launch {
-            authRepository.observeAuthState().collect { user ->
+            authRepository.observeAuthState().flatMapLatest { user ->
                 if (user == null) {
-                    _uiState.update { it.copy(isLoading = false, isAuthenticated = false) }
-                    return@collect
+                    flowOf(UnitLessonsUiState(isLoading = false, isAuthenticated = false))
+                } else {
+                    val uid = user.uid
+                    val unitFlow = learningRepository.getUnit(unitId)
+                    val lessonsFlow = learningRepository.getLessonsByUnit(unitId)
+
+                    combine(unitFlow, lessonsFlow) { unitRes, lessonsRes ->
+                        val unit = unitRes.getOrNull()
+                        val lessonsList = lessonsRes.getOrNull() ?: emptyList()
+                        Pair(unit, lessonsList)
+                    }.flatMapLatest { (unit, lessonsList) ->
+                        if (lessonsList.isEmpty()) {
+                            flowOf(
+                                UnitLessonsUiState(
+                                    isLoading = false,
+                                    isAuthenticated = true,
+                                    errorMessage = null,
+                                    unit = unit,
+                                    lessons = emptyList()
+                                )
+                            )
+                        } else {
+                            val progressFlows = lessonsList.map { lesson ->
+                                progressRepository.getLessonProgress(uid, lesson.id)
+                            }
+
+                            combine(progressFlows) { progressResults ->
+                                val uiModels = lessonsList.mapIndexed { index, lesson ->
+                                    val progress = progressResults.getOrNull(index)?.getOrNull()
+                                    LessonItemUiModel(lesson = lesson, progress = progress)
+                                }
+                                UnitLessonsUiState(
+                                    isLoading = false,
+                                    isAuthenticated = true,
+                                    errorMessage = null,
+                                    unit = unit,
+                                    lessons = uiModels
+                                )
+                            }
+                        }
+                    }
                 }
-
-                val uid = user.uid
-                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-                val unitResult = learningRepository.getUnit(unitId).firstOrNull()
-                val unit = unitResult?.getOrNull()
-
-                val lessonsResult = learningRepository.getLessonsByUnit(unitId).firstOrNull()
-                val lessonsList = lessonsResult?.getOrNull() ?: emptyList()
-
-                val lessonUiModels = lessonsList.map { lesson ->
-                    val progressResult = progressRepository.getLessonProgress(uid, lesson.id).firstOrNull()
-                    LessonItemUiModel(
-                        lesson = lesson,
-                        progress = progressResult?.getOrNull()
-                    )
-                }
-
-                _uiState.value = UnitLessonsUiState(
-                    isLoading = false,
-                    isAuthenticated = true,
-                    errorMessage = null,
-                    unit = unit,
-                    lessons = lessonUiModels
-                )
+            }.collect { newState ->
+                _uiState.value = newState
             }
         }
     }

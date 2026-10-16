@@ -121,11 +121,10 @@ class LessonViewModel(
                 if (vocabDone) completedModules++
                 if (grammarDone) completedModules++
                 if (listeningDone) completedModules++
-                if (pronunDone) completedModules++
                 if (quizDone) completedModules++
 
-                val isOverallCompleted = (lessonProgress?.completed == true) || (completedModules == 5)
-                val calculatedPct = if (isOverallCompleted) 100 else completedModules * 20
+                val isOverallCompleted = (lessonProgress?.completed == true) || (completedModules == 4)
+                val calculatedPct = if (isOverallCompleted) 100 else completedModules * 25
 
                 _uiState.value = LessonUiState(
                     isLoading = false,

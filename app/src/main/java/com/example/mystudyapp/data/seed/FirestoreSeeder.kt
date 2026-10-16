@@ -26,9 +26,13 @@ object FirestoreSeeder {
             firestore.collection("programs").document(program.id).set(
                 mapOf(
                     "title" to program.title,
+                    "titleVi" to (program.titleVi ?: ""),
                     "description" to program.description,
+                    "descriptionVi" to (program.descriptionVi ?: ""),
                     "targetAudience" to program.targetAudience,
+                    "targetAudienceVi" to (program.targetAudienceVi ?: ""),
                     "learningObjectives" to program.learningObjectives,
+                    "learningObjectivesVi" to (program.learningObjectivesVi ?: emptyList()),
                     "order" to program.order,
                     "isPublished" to program.isPublished,
                     "iconEmoji" to program.iconEmoji,
@@ -44,7 +48,9 @@ object FirestoreSeeder {
                 mapOf(
                     "programId" to level.programId,
                     "name" to level.name,
+                    "nameVi" to (level.nameVi ?: ""),
                     "description" to level.description,
+                    "descriptionVi" to (level.descriptionVi ?: ""),
                     "order" to level.order,
                     "xpRequired" to level.xpRequired
                 ),
@@ -58,9 +64,12 @@ object FirestoreSeeder {
                         "levelId" to u.levelId,
                         "programId" to u.programId,
                         "title" to u.title,
+                        "titleVi" to (u.titleVi ?: ""),
                         "description" to u.description,
+                        "descriptionVi" to (u.descriptionVi ?: ""),
                         "order" to u.order,
                         "learningObjectives" to u.learningObjectives,
+                        "learningObjectivesVi" to (u.learningObjectivesVi ?: emptyList()),
                         "estimatedMinutes" to u.estimatedMinutes,
                         "isPublished" to u.isPublished
                     ),
@@ -75,7 +84,9 @@ object FirestoreSeeder {
                         "unitId" to l.unitId,
                         "programId" to l.programId,
                         "title" to l.title,
+                        "titleVi" to (l.titleVi ?: ""),
                         "description" to l.description,
+                        "descriptionVi" to (l.descriptionVi ?: ""),
                         "order" to l.order,
                         "estimatedMinutes" to l.estimatedMinutes,
                         "xpReward" to l.xpReward,
@@ -92,8 +103,10 @@ object FirestoreSeeder {
                         "lessonId" to v.lessonId,
                         "word" to v.word,
                         "meaning" to v.meaning,
+                        "meaningVi" to (v.meaningVi ?: ""),
                         "partOfSpeech" to v.partOfSpeech,
                         "example" to v.example,
+                        "exampleVi" to (v.exampleVi ?: ""),
                         "translation" to v.translation,
                         "audioUrl" to (v.audioUrl ?: ""),
                         "imageUrl" to (v.imageUrl ?: ""),
@@ -109,8 +122,11 @@ object FirestoreSeeder {
                     mapOf(
                         "lessonId" to g.lessonId,
                         "title" to g.title,
+                        "titleVi" to (g.titleVi ?: ""),
                         "explanation" to g.explanation,
+                        "explanationVi" to (g.explanationVi ?: ""),
                         "examples" to g.examples,
+                        "examplesVi" to (g.examplesVi ?: emptyList()),
                         "order" to g.order
                     ),
                     SetOptions.merge()
@@ -123,8 +139,10 @@ object FirestoreSeeder {
                     mapOf(
                         "lessonId" to lis.lessonId,
                         "title" to lis.title,
+                        "titleVi" to (lis.titleVi ?: ""),
                         "audioUrl" to (lis.audioUrl ?: ""),
                         "transcript" to lis.transcript,
+                        "transcriptVi" to (lis.transcriptVi ?: ""),
                         "difficulty" to lis.difficulty,
                         "order" to lis.order
                     ),
@@ -141,6 +159,7 @@ object FirestoreSeeder {
                         "phonetic" to p.phonetic,
                         "audioUrl" to (p.audioUrl ?: ""),
                         "targetScore" to p.targetScore,
+                        "instructionVi" to (p.instructionVi ?: ""),
                         "order" to p.order
                     ),
                     SetOptions.merge()
@@ -154,8 +173,10 @@ object FirestoreSeeder {
                         "lessonId" to q.lessonId,
                         "type" to q.type,
                         "question" to q.question,
+                        "questionVi" to (q.questionVi ?: ""),
                         "options" to q.options,
                         "correctAnswer" to q.correctAnswer,
+                        "explanationVi" to (q.explanationVi ?: ""),
                         "xpReward" to q.xpReward,
                         "order" to q.order
                     ),

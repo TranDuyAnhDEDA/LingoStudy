@@ -1,5 +1,6 @@
 package com.example.mystudyapp.data.mapper
 
+import com.example.mystudyapp.data.model.DailyStudyTime
 import com.example.mystudyapp.data.model.Grammar
 import com.example.mystudyapp.data.model.LearningProgram
 import com.example.mystudyapp.data.model.Lesson
@@ -109,9 +110,13 @@ fun DocumentSnapshot.toLearningProgram(): LearningProgram? {
     return LearningProgram(
         id = id,
         title = getString("title") ?: "",
+        titleVi = getString("titleVi"),
         description = getString("description") ?: "",
+        descriptionVi = getString("descriptionVi"),
         targetAudience = getString("targetAudience") ?: "",
+        targetAudienceVi = getString("targetAudienceVi"),
         learningObjectives = (get("learningObjectives") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        learningObjectivesVi = (get("learningObjectivesVi") as? List<*>)?.mapNotNull { it?.toString() },
         order = getLong("order")?.toInt() ?: 0,
         isPublished = getBoolean("isPublished") ?: true,
         iconEmoji = getString("iconEmoji") ?: "",
@@ -126,7 +131,9 @@ fun DocumentSnapshot.toLevel(): Level? {
         id = id,
         programId = getString("programId") ?: "",
         name = getString("name") ?: "",
+        nameVi = getString("nameVi"),
         description = getString("description") ?: "",
+        descriptionVi = getString("descriptionVi"),
         order = getLong("order")?.toInt() ?: 0,
         xpRequired = getLong("xpRequired")?.toInt() ?: 0
     )
@@ -140,9 +147,12 @@ fun DocumentSnapshot.toUnitModel(): Unit? {
         levelId = getString("levelId") ?: "",
         programId = getString("programId") ?: "",
         title = getString("title") ?: "",
+        titleVi = getString("titleVi"),
         description = getString("description") ?: "",
+        descriptionVi = getString("descriptionVi"),
         order = getLong("order")?.toInt() ?: 0,
         learningObjectives = (get("learningObjectives") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        learningObjectivesVi = (get("learningObjectivesVi") as? List<*>)?.mapNotNull { it?.toString() },
         estimatedMinutes = getLong("estimatedMinutes")?.toInt() ?: 0,
         imageUrl = getString("imageUrl"),
         isPublished = getBoolean("isPublished") ?: true
@@ -157,11 +167,14 @@ fun DocumentSnapshot.toLesson(): Lesson? {
         unitId = getString("unitId") ?: "",
         programId = getString("programId") ?: "",
         title = getString("title") ?: "",
+        titleVi = getString("titleVi"),
         description = getString("description") ?: "",
+        descriptionVi = getString("descriptionVi"),
         order = getLong("order")?.toInt() ?: 0,
         estimatedMinutes = getLong("estimatedMinutes")?.toInt() ?: 0,
         xpReward = getLong("xpReward")?.toInt() ?: 0,
         learningObjectives = (get("learningObjectives") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        learningObjectivesVi = (get("learningObjectivesVi") as? List<*>)?.mapNotNull { it?.toString() },
         isPublished = getBoolean("isPublished") ?: true
     )
 }
@@ -173,8 +186,10 @@ fun DocumentSnapshot.toVocabulary(): Vocabulary? {
         lessonId = getString("lessonId") ?: "",
         word = getString("word") ?: "",
         meaning = getString("meaning") ?: "",
+        meaningVi = getString("meaningVi"),
         partOfSpeech = getString("partOfSpeech") ?: "",
         example = getString("example") ?: "",
+        exampleVi = getString("exampleVi"),
         translation = getString("translation") ?: "",
         audioUrl = getString("audioUrl"),
         imageUrl = getString("imageUrl"),
@@ -189,8 +204,11 @@ fun DocumentSnapshot.toGrammar(): Grammar? {
         id = id,
         lessonId = getString("lessonId") ?: "",
         title = getString("title") ?: "",
+        titleVi = getString("titleVi"),
         explanation = getString("explanation") ?: "",
+        explanationVi = getString("explanationVi"),
         examples = (get("examples") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
+        examplesVi = (get("examplesVi") as? List<*>)?.mapNotNull { it?.toString() },
         order = getLong("order")?.toInt() ?: 0
     )
 }
@@ -201,8 +219,10 @@ fun DocumentSnapshot.toListening(): Listening? {
         id = id,
         lessonId = getString("lessonId") ?: "",
         title = getString("title") ?: "",
+        titleVi = getString("titleVi"),
         audioUrl = getString("audioUrl"),
         transcript = getString("transcript") ?: "",
+        transcriptVi = getString("transcriptVi"),
         difficulty = getString("difficulty") ?: "",
         order = getLong("order")?.toInt() ?: 0
     )
@@ -217,6 +237,7 @@ fun DocumentSnapshot.toPronunciation(): Pronunciation? {
         phonetic = getString("phonetic") ?: "",
         audioUrl = getString("audioUrl"),
         targetScore = getLong("targetScore")?.toInt() ?: 0,
+        instructionVi = getString("instructionVi"),
         order = getLong("order")?.toInt() ?: 0
     )
 }
@@ -229,8 +250,10 @@ fun DocumentSnapshot.toQuiz(): Quiz? {
         lessonId = getString("lessonId") ?: "",
         type = getString("type") ?: "",
         question = getString("question") ?: "",
+        questionVi = getString("questionVi"),
         options = (get("options") as? List<*>)?.mapNotNull { it?.toString() } ?: emptyList(),
         correctAnswer = getString("correctAnswer") ?: "",
+        explanationVi = getString("explanationVi"),
         xpReward = getLong("xpReward")?.toInt() ?: 0,
         order = getLong("order")?.toInt() ?: 0
     )
@@ -246,7 +269,10 @@ fun DocumentSnapshot.toUserProgress(): UserProgress? {
         pronunciationProgress = getLong("pronunciationProgress")?.toInt() ?: 0,
         currentLessonId = getString("currentLessonId"),
         completedLessons = getLong("completedLessons")?.toInt() ?: 0,
-        totalLessons = getLong("totalLessons")?.toInt() ?: 0
+        totalLessons = getLong("totalLessons")?.toInt() ?: 0,
+        currentActivity = getString("currentActivity"),
+        lastActivityIndex = getLong("lastActivityIndex")?.toInt() ?: 0,
+        lastActiveAt = getTimestamp("lastActiveAt")
     )
 }
 
@@ -257,7 +283,25 @@ fun UserProgress.toFirestoreMap(): Map<String, Any?> = mapOf(
     "pronunciationProgress" to pronunciationProgress,
     "currentLessonId" to currentLessonId,
     "completedLessons" to completedLessons,
-    "totalLessons" to totalLessons
+    "totalLessons" to totalLessons,
+    "currentActivity" to currentActivity,
+    "lastActivityIndex" to lastActivityIndex,
+    "lastActiveAt" to (lastActiveAt ?: FieldValue.serverTimestamp())
+)
+
+fun DocumentSnapshot.toDailyStudyTime(): DailyStudyTime? {
+    if (!exists()) return null
+    return DailyStudyTime(
+        date = getString("date") ?: id,
+        totalSeconds = getLong("totalSeconds") ?: 0L,
+        updatedAt = getTimestamp("updatedAt")
+    )
+}
+
+fun DailyStudyTime.toFirestoreMap(): Map<String, Any?> = mapOf(
+    "date" to date,
+    "totalSeconds" to totalSeconds,
+    "updatedAt" to (updatedAt ?: FieldValue.serverTimestamp())
 )
 
 fun DocumentSnapshot.toLessonProgress(): LessonProgress? {

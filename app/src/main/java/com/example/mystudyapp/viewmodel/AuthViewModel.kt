@@ -71,8 +71,8 @@ class AuthViewModel(
                         uid = user.uid,
                         displayName = displayName.trim(),
                         email = user.email ?: email.trim(),
-                        levelId = "level_3",
-                        levelName = "Explorer",
+                        levelId = "level_beginner_1",
+                        levelName = "Beginner 1: Nền tảng & Giao tiếp",
                         xp = 0,
                         streak = 0,
                         longestStreak = 0,
@@ -98,9 +98,9 @@ class AuthViewModel(
                         grammarProgress = 0,
                         listeningProgress = 0,
                         pronunciationProgress = 0,
-                        currentLessonId = "lesson_3_1_1",
+                        currentLessonId = "lesson_b1_1_1",
                         completedLessons = 0,
-                        totalLessons = 3
+                        totalLessons = 30
                     )
 
                     val progressResult = progressRepository.createUserProgress(initialProgress)

@@ -160,7 +160,7 @@ class HomeViewModelTest {
     ) : LearningRepository {
         override fun getPrograms(): Flow<Result<List<LearningProgram>>> = flowOf(Result.success(emptyList()))
         override fun getProgram(programId: String): Flow<Result<LearningProgram?>> = flowOf(Result.success(null))
-        override fun getLevelsByProgram(programId: String): Flow<Result<List<Level>>> = flowOf(Result.success(emptyList()))
+        override fun getLevelsByProgram(programId: String): Flow<Result<List<Level>>> = flowOf(Result.success(if (level != null) listOf(level) else emptyList()))
         override fun getLevels(): Flow<Result<List<Level>>> = flowOf(Result.success(emptyList()))
         override fun getLevel(levelId: String): Flow<Result<Level?>> = flowOf(Result.success(level))
         override fun getUnitsByLevel(levelId: String): Flow<Result<List<Unit>>> = flowOf(Result.success(emptyList()))

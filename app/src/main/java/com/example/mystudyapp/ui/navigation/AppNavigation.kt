@@ -18,7 +18,9 @@ import androidx.navigation.navArgument
 import com.example.mystudyapp.data.model.AuthState
 import com.example.mystudyapp.ui.screen.auth.LoginScreen
 import com.example.mystudyapp.ui.screen.auth.RegisterScreen
+import com.example.mystudyapp.ui.screen.dictionary.DictionaryScreen
 import com.example.mystudyapp.ui.screen.grammar.GrammarScreen
+import com.example.mystudyapp.ui.screen.profile.ProfileScreen
 import com.example.mystudyapp.ui.screen.home.HomeScreen
 import com.example.mystudyapp.ui.screen.learn.LearnScreen
 import com.example.mystudyapp.ui.screen.learn.LevelUnitsScreen
@@ -94,6 +96,18 @@ fun AppNavigation(
                 }
                 composable("learn") {
                     LearnScreen(onNavigate = safeNavigate)
+                }
+                composable("dictionary") {
+                    DictionaryScreen(onNavigate = safeNavigate)
+                }
+                composable("practice") {
+                    DictionaryScreen(onNavigate = safeNavigate)
+                }
+                composable("me") {
+                    ProfileScreen(onNavigate = safeNavigate)
+                }
+                composable("profile") {
+                    ProfileScreen(onNavigate = safeNavigate)
                 }
                 composable(
                     route = "program/{programId}",

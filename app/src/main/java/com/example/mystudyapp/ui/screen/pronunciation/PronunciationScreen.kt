@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mystudyapp.ui.component.ActiveStudyTimeTracker
 import com.example.mystudyapp.ui.component.MascotExpression
 import com.example.mystudyapp.ui.component.MascotView
 import com.example.mystudyapp.ui.theme.LingoBlue
@@ -66,6 +67,8 @@ fun PronunciationScreen(
     viewModel: PronunciationViewModel = viewModel(factory = PronunciationViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    ActiveStudyTimeTracker(lessonId = lessonId, activityName = "pronunciation")
 
     Scaffold(
         containerColor = Color(0xFFF8FAFF),

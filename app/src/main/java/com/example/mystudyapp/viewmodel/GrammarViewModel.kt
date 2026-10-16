@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mystudyapp.data.model.LessonProgress
+import com.example.mystudyapp.data.model.Quiz
 import com.example.mystudyapp.data.repository.AuthRepository
 import com.example.mystudyapp.data.repository.AuthRepositoryImpl
 import com.example.mystudyapp.data.repository.LearningRepository
 import com.example.mystudyapp.data.repository.LearningRepositoryImpl
 import com.example.mystudyapp.data.repository.ProgressRepository
 import com.example.mystudyapp.data.repository.ProgressRepositoryImpl
+import com.example.mystudyapp.data.seed.BeginnerCurriculumData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +24,7 @@ data class GrammarUiModel(
     val title: String,
     val explanation: String,
     val examples: List<String> = emptyList(),
+    val examplesVi: List<String> = emptyList(),
     val order: Int = 0
 )
 
@@ -32,8 +35,13 @@ data class GrammarUiState(
     val lessonId: String = "",
     val lessonTitle: String = "",
     val grammarList: List<GrammarUiModel> = emptyList(),
-    val currentIndex: Int = 0,
-    val completedCount: Int = 0,
+    val isReadingFinished: Boolean = false,
+    val showQuickQuiz: Boolean = false,
+    val quickQuizQuestions: List<Quiz> = emptyList(),
+    val currentQuizIndex: Int = 0,
+    val selectedAnswers: Map<Int, String> = emptyMap(),
+    val isQuizSubmitted: Boolean = false,
+    val quizScore: Int = 0,
     val isFinished: Boolean = false
 )
 
@@ -53,25 +61,14 @@ class GrammarViewModel(
 
     fun loadGrammarData() {
         if (lessonId.isBlank()) {
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    errorMessage = "Invalid lesson ID."
-                )
-            }
+            _uiState.update { it.copy(isLoading = false, errorMessage = "Invalid lesson ID.") }
             return
         }
 
         viewModelScope.launch {
             authRepository.observeAuthState().collect { user ->
                 if (user == null) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isAuthenticated = false,
-                            errorMessage = "User is not authenticated. Please log in."
-                        )
-                    }
+                    _uiState.update { it.copy(isLoading = false, isAuthenticated = false) }
                     return@collect
                 }
 
@@ -83,141 +80,145 @@ class GrammarViewModel(
 
                 val grammarResult = learningRepository.getGrammarByLesson(lessonId).firstOrNull()
                 val rawGrammarList = grammarResult?.getOrNull() ?: emptyList()
-
                 val sortedGrammar = rawGrammarList.sortedBy { it.order }
 
                 val lessonProgressResult = progressRepository.getLessonProgress(uid, lessonId).firstOrNull()
                 val lessonProgress = lessonProgressResult?.getOrNull()
 
-                if (sortedGrammar.isEmpty()) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            lessonTitle = lesson?.title ?: "Grammar Lesson",
-                            grammarList = emptyList(),
-                            errorMessage = null
-                        )
-                    }
-                    return@collect
-                }
+                val quickQuizzes = BeginnerCurriculumData.sampleGrammarQuickQuizzes
 
                 val uiModels = sortedGrammar.map { g ->
                     GrammarUiModel(
                         id = g.id,
-                        title = g.title,
-                        explanation = g.explanation,
+                        title = g.titleVi ?: g.title,
+                        explanation = g.explanationVi ?: g.explanation,
                         examples = g.examples,
+                        examplesVi = g.examplesVi ?: emptyList(),
                         order = g.order
                     )
                 }
 
-                val lastIndex = lessonProgress?.lastGrammarIndex ?: 0
-                val startingIndex = if (lastIndex in uiModels.indices && !(lessonProgress?.grammarCompleted == true)) {
-                    lastIndex
-                } else {
-                    0
-                }
-
                 val isAlreadyFinished = (lessonProgress?.grammarCompleted == true)
-                val completedCount = if (isAlreadyFinished) uiModels.size else startingIndex
 
                 _uiState.value = GrammarUiState(
                     isLoading = false,
                     isAuthenticated = true,
                     errorMessage = null,
                     lessonId = lessonId,
-                    lessonTitle = lesson?.title ?: "Grammar Lesson",
+                    lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Ngữ pháp bài học",
                     grammarList = uiModels,
-                    currentIndex = if (isAlreadyFinished) uiModels.size - 1 else startingIndex,
-                    completedCount = completedCount,
-                    isFinished = isAlreadyFinished
+                    quickQuizQuestions = quickQuizzes,
+                    isReadingFinished = false,
+                    isFinished = false
                 )
             }
         }
     }
 
-    fun nextGrammar() {
-        val currentState = _uiState.value
-        val list = currentState.grammarList
-        if (list.isEmpty()) return
+    fun onFinishReadingContent() {
+        _uiState.update {
+            it.copy(
+                isReadingFinished = true,
+                showQuickQuiz = true,
+                currentQuizIndex = 0,
+                selectedAnswers = emptyMap(),
+                isQuizSubmitted = false
+            )
+        }
+    }
 
-        val nextIndex = currentState.currentIndex + 1
-        val newCompletedCount = (currentState.completedCount + 1).coerceAtMost(list.size)
+    fun selectQuizAnswer(questionIndex: Int, answer: String) {
+        _uiState.update { currentState ->
+            val updated = currentState.selectedAnswers.toMutableMap()
+            updated[questionIndex] = answer
+            currentState.copy(selectedAnswers = updated)
+        }
+    }
+
+    fun nextQuizQuestion() {
+        val currentState = _uiState.value
+        if (currentState.currentQuizIndex < currentState.quickQuizQuestions.size - 1) {
+            _uiState.update { it.copy(currentQuizIndex = it.currentQuizIndex + 1) }
+        }
+    }
+
+    fun prevQuizQuestion() {
+        val currentState = _uiState.value
+        if (currentState.currentQuizIndex > 0) {
+            _uiState.update { it.copy(currentQuizIndex = it.currentQuizIndex - 1) }
+        }
+    }
+
+    fun submitQuickQuiz() {
+        val currentState = _uiState.value
+        val questions = currentState.quickQuizQuestions
+        var score = 0
+        questions.forEachIndexed { index, quiz ->
+            val selected = currentState.selectedAnswers[index]
+            if (selected == quiz.correctAnswer) {
+                score++
+            }
+        }
 
         val currentUser = authRepository.getCurrentUser()
         val uid = currentUser?.uid
 
         viewModelScope.launch {
-            if (nextIndex < list.size) {
-                _uiState.update {
-                    it.copy(
-                        currentIndex = nextIndex,
-                        completedCount = newCompletedCount
-                    )
-                }
-                if (uid != null) {
-                    val currentVocabCompleted = isVocabCompleted(uid)
-                    val updatedProgress = LessonProgress(
-                        lessonId = lessonId,
-                        progress = calculateLessonProgressPct(vocabDone = currentVocabCompleted, grammarDone = false),
-                        completed = false,
-                        vocabularyCompleted = currentVocabCompleted,
-                        grammarCompleted = false,
-                        lastGrammarIndex = nextIndex
-                    )
-                    progressRepository.updateLessonProgress(uid, updatedProgress)
-                }
-            } else {
-                if (uid != null) {
-                    val currentVocabCompleted = isVocabCompleted(uid)
-                    val updatedProgress = LessonProgress(
-                        lessonId = lessonId,
-                        progress = calculateLessonProgressPct(vocabDone = currentVocabCompleted, grammarDone = true),
-                        completed = false,
-                        vocabularyCompleted = currentVocabCompleted,
-                        grammarCompleted = true,
-                        lastGrammarIndex = list.size
-                    )
-                    val saveResult = progressRepository.updateLessonProgress(uid, updatedProgress)
-                    if (saveResult.isSuccess) {
-                        progressRepository.completeLessonIfEligible(uid, lessonId)
-                        _uiState.update {
-                            it.copy(
-                                currentIndex = list.size - 1,
-                                completedCount = list.size,
-                                isFinished = true
-                            )
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                errorMessage = saveResult.exceptionOrNull()?.message ?: "Failed to save progress."
-                            )
-                        }
+            if (uid != null) {
+                val currentProgressRes = progressRepository.getLessonProgress(uid, lessonId).firstOrNull()
+                val currentProgress = currentProgressRes?.getOrNull()
+                val vocabDone = currentProgress?.vocabularyCompleted == true
+
+                val updatedProgress = LessonProgress(
+                    lessonId = lessonId,
+                    progress = if (vocabDone) 50 else 25,
+                    completed = false,
+                    vocabularyCompleted = vocabDone,
+                    grammarCompleted = true,
+                    lastGrammarIndex = currentState.grammarList.size
+                )
+
+                val saveResult = progressRepository.updateLessonProgress(uid, updatedProgress)
+                if (saveResult.isSuccess) {
+                    progressRepository.completeLessonIfEligible(uid, lessonId)
+                    _uiState.update {
+                        it.copy(
+                            isQuizSubmitted = true,
+                            quizScore = score,
+                            isFinished = true,
+                            showQuickQuiz = false
+                        )
                     }
                 } else {
                     _uiState.update {
                         it.copy(
-                            currentIndex = list.size - 1,
-                            completedCount = list.size,
-                            isFinished = true
+                            errorMessage = saveResult.exceptionOrNull()?.message ?: "Lỗi lưu tiến độ ngữ pháp."
                         )
                     }
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isQuizSubmitted = true,
+                        quizScore = score,
+                        isFinished = true,
+                        showQuickQuiz = false
+                    )
                 }
             }
         }
     }
 
-    private suspend fun isVocabCompleted(uid: String): Boolean {
-        val progress = progressRepository.getLessonProgress(uid, lessonId).firstOrNull()?.getOrNull()
-        return progress?.vocabularyCompleted == true
-    }
-
-    private fun calculateLessonProgressPct(vocabDone: Boolean, grammarDone: Boolean): Int {
-        var pct = 0
-        if (vocabDone) pct += 20
-        if (grammarDone) pct += 20
-        return pct
+    fun retakeQuickQuiz() {
+        _uiState.update {
+            it.copy(
+                showQuickQuiz = true,
+                currentQuizIndex = 0,
+                selectedAnswers = emptyMap(),
+                isQuizSubmitted = false,
+                isFinished = false
+            )
+        }
     }
 }
 

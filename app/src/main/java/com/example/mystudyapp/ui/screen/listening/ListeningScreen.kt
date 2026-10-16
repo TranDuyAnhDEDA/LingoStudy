@@ -1,5 +1,6 @@
 package com.example.mystudyapp.ui.screen.listening
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -32,22 +33,30 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mystudyapp.ui.component.ActiveStudyTimeTracker
 import com.example.mystudyapp.ui.component.MascotExpression
 import com.example.mystudyapp.ui.component.MascotView
 import com.example.mystudyapp.ui.theme.LingoBlue
@@ -57,6 +66,7 @@ import com.example.mystudyapp.ui.theme.LingoGreen
 import com.example.mystudyapp.viewmodel.ListeningUiModel
 import com.example.mystudyapp.viewmodel.ListeningViewModel
 import com.example.mystudyapp.viewmodel.ListeningViewModelFactory
+import java.util.Locale
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -66,6 +76,28 @@ fun ListeningScreen(
     viewModel: ListeningViewModel = viewModel(factory = ListeningViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    var tts: TextToSpeech? by remember { mutableStateOf(null) }
+
+    DisposableEffect(context) {
+        val ttsEngine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = Locale.US
+            }
+        }
+        tts = ttsEngine
+        onDispose {
+            ttsEngine.stop()
+            ttsEngine.shutdown()
+        }
+    }
+
+    fun speakAudio(text: String) {
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "listening_tts_id")
+    }
+
+    ActiveStudyTimeTracker(lessonId = lessonId, activityName = "listening")
 
     Scaffold(
         containerColor = Color(0xFFF8FAFF),
@@ -99,7 +131,7 @@ fun ListeningScreen(
                         Spacer(Modifier.width(16.dp))
 
                         Text(
-                            text = uiState.lessonTitle.ifBlank { "Listening" },
+                            text = uiState.lessonTitle.ifBlank { "Luyện nghe" },
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF1E3A8A),
@@ -110,7 +142,7 @@ fun ListeningScreen(
                             val currentPos = uiState.currentIndex + 1
                             val totalPos = uiState.listeningList.size
                             Text(
-                                text = "$currentPos / $totalPos",
+                                text = "Câu $currentPos / $totalPos",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = LingoBlue
@@ -154,7 +186,7 @@ fun ListeningScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (isLast) "Finish Listening" else "Next",
+                                    text = if (isLast) "Hoàn thành 10 bài nghe 🎉" else "Câu tiếp theo",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -194,7 +226,7 @@ fun ListeningScreen(
                     modifier = Modifier.padding(24.dp)
                 ) {
                     Text(
-                        text = uiState.errorMessage ?: "An error occurred.",
+                        text = uiState.errorMessage ?: "Có lỗi xảy ra.",
                         fontSize = 16.sp,
                         color = Color.Red,
                         textAlign = TextAlign.Center
@@ -204,7 +236,7 @@ fun ListeningScreen(
                         onClick = { onBackToLesson() },
                         colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
                     ) {
-                        Text("Back to Lesson")
+                        Text("Quay lại bài học")
                     }
                 }
             }
@@ -220,7 +252,7 @@ fun ListeningScreen(
                     modifier = Modifier.padding(24.dp)
                 ) {
                     Text(
-                        text = "No listening exercises available for this lesson.",
+                        text = "Chưa có bài luyện nghe cho bài học này.",
                         fontSize = 16.sp,
                         color = LingoGray,
                         textAlign = TextAlign.Center
@@ -230,7 +262,7 @@ fun ListeningScreen(
                         onClick = { onBackToLesson() },
                         colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
                     ) {
-                        Text("Back to Lesson")
+                        Text("Quay lại bài học")
                     }
                 }
             }
@@ -272,7 +304,7 @@ fun ListeningScreen(
                         Spacer(Modifier.height(12.dp))
 
                         Text(
-                            text = "Listening Complete!",
+                            text = "Hoàn thành 10/10 Bài luyện nghe!",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF1E3A8A)
@@ -281,33 +313,54 @@ fun ListeningScreen(
                         Spacer(Modifier.height(6.dp))
 
                         Text(
-                            text = "${uiState.completedCount} / ${uiState.listeningList.size} exercises completed",
-                            fontSize = 15.sp,
-                            color = LingoGray
+                            text = "Bạn đã lắng nghe và hoàn thành đủ 10 câu luyện nghe của bài học.",
+                            fontSize = 14.sp,
+                            color = LingoGray,
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(Modifier.height(24.dp))
 
-                        Button(
-                            onClick = { onBackToLesson() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(26.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(
-                                text = "Back to Lesson",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            Button(
+                                onClick = { viewModel.restartReview() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(26.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0), contentColor = Color(0xFF334155))
+                            ) {
+                                Text(
+                                    text = "Luyện lại từ đầu 🔄",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Button(
+                                onClick = { onBackToLesson() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(26.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
+                            ) {
+                                Text(
+                                    text = "Về bài học",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
                         }
                     }
                 }
             }
         } else {
-            // Active Listening Card View
+            // Active Listening Question View
             val currentListening = uiState.listeningList.getOrNull(uiState.currentIndex)
             if (currentListening != null) {
                 Box(
@@ -326,7 +379,10 @@ fun ListeningScreen(
                         },
                         label = "listening_card_transition"
                     ) { listening ->
-                        ListeningCard(listening = listening)
+                        ListeningCard(
+                            listening = listening,
+                            onPlayAudio = { speakAudio(listening.title) }
+                        )
                     }
                 }
             }
@@ -335,7 +391,10 @@ fun ListeningScreen(
 }
 
 @Composable
-private fun ListeningCard(listening: ListeningUiModel) {
+private fun ListeningCard(
+    listening: ListeningUiModel,
+    onPlayAudio: () -> Unit
+) {
     Surface(
         color = Color.White,
         shape = RoundedCornerShape(28.dp),
@@ -346,118 +405,75 @@ private fun ListeningCard(listening: ListeningUiModel) {
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.Start
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                color = Color(0xFFF3E8FF),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Surface(
-                    color = Color(0xFFF3E8FF),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "Listening Exercise",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF7E22CE),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                    )
-                }
+                Text(
+                    text = "BÀI TẬP LUYỆN NGHE",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF7E22CE),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
 
-                if (listening.difficulty.isNotBlank()) {
-                    Surface(
-                        color = Color(0xFFE0F2FE),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = listening.difficulty.replaceFirstChar { it.uppercase() },
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0369A1),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
+            Spacer(Modifier.height(20.dp))
+
+            // Audio Player Button
+            Surface(
+                color = Color(0xFFEFF6FF),
+                shape = CircleShape,
+                modifier = Modifier
+                    .size(72.dp)
+                    .clickable { onPlayAudio() }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                        contentDescription = "Play Audio",
+                        tint = LingoBlue,
+                        modifier = Modifier.size(38.dp)
+                    )
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
             Text(
-                text = listening.title,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF1E3A8A)
+                text = "Nhấn nút để nghe âm thanh 🔊",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = LingoBlue
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // Audio player prepared container
             Surface(
                 color = Color(0xFFF8FAFF),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
+                Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        color = LingoBlue.copy(alpha = 0.15f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                            contentDescription = null,
-                            tint = LingoBlue,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
+                    Text(
+                        text = listening.title,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF1E3A8A)
+                    )
 
-                    Spacer(Modifier.width(12.dp))
-
-                    Column {
+                    if (listening.transcript.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
                         Text(
-                            text = "Audio Track",
+                            text = listening.transcript,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A8A)
-                        )
-                        Text(
-                            text = if (!listening.audioUrl.isNullOrBlank()) "Audio stream available" else "Audio player prepared for playback",
-                            fontSize = 12.sp,
-                            color = LingoGray
-                        )
-                    }
-                }
-            }
-
-            if (listening.transcript.isNotBlank()) {
-                Spacer(Modifier.height(20.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFF8FAFF))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "Transcript:",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LingoBlue
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "\"${listening.transcript}\"",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF1E3A8A),
-                            lineHeight = 22.sp
+                            color = Color(0xFF475569),
+                            textAlign = TextAlign.Center
                         )
                     }
                 }

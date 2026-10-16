@@ -4,6 +4,7 @@ import androidx.compose.animation.core.EaseOutQuart
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,11 +29,23 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -39,6 +53,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,11 +67,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.example.mystudyapp.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.MascotExpression
@@ -77,82 +97,124 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedNav by remember { mutableIntStateOf(0) }
 
-    Scaffold(
-        containerColor = Color(0xFFF8FAFF),
-        bottomBar = {
-            HomeBottomNav(
-                selectedIndex = selectedNav,
-                onItemSelected = {
-                    selectedNav = it
-                    when (it) {
-                        0 -> onNavigate("home")
-                        1 -> onNavigate("learn")
-                        2 -> onNavigate("practice")
-                        3 -> onNavigate("me")
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = LingoBlue)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadHomeData()
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(bottom = 36.dp)
-            ) {
-                // Section A — Hero introduction
-                item {
-                    EntranceWrapper(delayMillis = 100) {
-                        HeroSection(
-                            displayName = uiState.displayName,
-                            onExploreClick = { onNavigate("learn") }
-                        )
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_home_sky),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        Scaffold(
+            containerColor = Color.Transparent,
+            bottomBar = {
+                HomeBottomNav(
+                    selectedIndex = selectedNav,
+                    onItemSelected = {
+                        selectedNav = it
+                        when (it) {
+                            0 -> onNavigate("home")
+                            1 -> onNavigate("learn")
+                            2 -> onNavigate("dictionary")
+                            3 -> onNavigate("me")
+                        }
                     }
+                )
+            }
+        ) { innerPadding ->
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = LingoBlue)
                 }
-
-                item { Spacer(Modifier.height(32.dp)) }
-
-                // Section B — Why LingoStudy? (Bento Grid)
-                item {
-                    EntranceWrapper(delayMillis = 250) {
-                        WhyLingoStudySection()
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentPadding = PaddingValues(bottom = 36.dp)
+                ) {
+                    // Section A & B Combined — Hero Banner
+                    item {
+                        EntranceWrapper(delayMillis = 100) {
+                            HeroBannerSection(
+                                displayName = uiState.displayName,
+                                onExploreClick = { onNavigate("learn") }
+                            )
+                        }
                     }
-                }
 
-                item { Spacer(Modifier.height(32.dp)) }
+                    item { Spacer(Modifier.height(16.dp)) }
 
-                // Section C — Your learning companion
-                item {
-                    EntranceWrapper(delayMillis = 400) {
-                        LearningCompanionSection()
+                    // Section C — Current learning level
+                    item {
+                        EntranceWrapper(delayMillis = 250) {
+                            CurrentLevelSection(
+                                levelName = uiState.levelName,
+                                levelOrder = uiState.levelOrder,
+                                currentXp = uiState.currentXp,
+                                requiredXp = uiState.requiredXp
+                            )
+                        }
                     }
-                }
 
-                item { Spacer(Modifier.height(32.dp)) }
+                    item { Spacer(Modifier.height(16.dp)) }
 
-                // Section D — How LingoStudy works (Illustrated Journey Timeline)
-                item {
-                    EntranceWrapper(delayMillis = 550) {
-                        HowItWorksSection()
+                    // Section D — Four compact statistic cards
+                    item {
+                        EntranceWrapper(delayMillis = 400) {
+                            StatisticsRowSection(
+                                currentXp = uiState.currentXp,
+                                streak = uiState.streak,
+                                completedLessons = uiState.completedLessons,
+                                todayStudySeconds = uiState.todayStudySeconds,
+                                todayStudyMinutes = uiState.todayStudyMinutes
+                            )
+                        }
                     }
-                }
 
-                item { Spacer(Modifier.height(36.dp)) }
+                    item { Spacer(Modifier.height(16.dp)) }
 
-                // Section E — Final call to action
-                item {
-                    EntranceWrapper(delayMillis = 700) {
-                        FinalCtaSection(onStartClick = { onNavigate("learn") })
+                    // Section E — Continue learning card vs Getting Started Welcome card
+                    item {
+                        EntranceWrapper(delayMillis = 550) {
+                            ContinueLearningSection(
+                                isNewUser = uiState.isNewUser,
+                                unfinishedLessonTitle = uiState.currentLessonTitle,
+                                unfinishedUnitTitle = uiState.currentUnitTitle,
+                                unfinishedProgressPct = uiState.unfinishedLessonProgressPct,
+                                onResumeClick = {
+                                    val route = uiState.resumeRoute ?: "lesson/${uiState.currentLessonId}"
+                                    onNavigate(route)
+                                }
+                            )
+                        }
+                    }
+
+                    item { Spacer(Modifier.height(20.dp)) }
+
+                    // Section F — Quick access
+                    item {
+                        EntranceWrapper(delayMillis = 700) {
+                            QuickAccessSection(onNavigate = onNavigate)
+                        }
                     }
                 }
             }
@@ -161,719 +223,625 @@ fun HomeScreen(
 }
 
 // =============================================================================
-// SECTION A — HERO INTRODUCTION
+// SECTION A & B — HERO BANNER
 // =============================================================================
 
 @Composable
-private fun HeroSection(
+private fun HeroBannerSection(
     displayName: String,
     onExploreClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Top Greeting Row with Avatar & Action Buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = Color.White,
+                border = BorderStroke(2.dp, Color(0xFFE0F2FE)),
+                shadowElevation = 2.dp,
+                modifier = Modifier.size(50.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    MascotView(
+                        modifier = Modifier.size(42.dp),
+                        expression = MascotExpression.HAPPY,
+                        enableAnimation = false
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Xin chào,",
+                    fontSize = 13.sp,
+                    color = Color(0xFF64748B),
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "${displayName.ifBlank { "Bạn học viên" }}! 👋",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E3A8A)
+                )
+                Text(
+                    text = "Học tiếng Anh mỗi ngày, tiến bộ từng chút một!",
+                    fontSize = 11.sp,
+                    color = Color(0xFF64748B)
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Notification button
+            Surface(
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.95f),
+                shadowElevation = 2.dp,
+                border = BorderStroke(1.dp, Color.White),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.Notifications,
+                        contentDescription = "Thông báo",
+                        tint = Color(0xFF1E3A8A),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-9).dp, y = 9.dp)
+                            .background(Color(0xFFEF4444), CircleShape)
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Settings button
+            Surface(
+                shape = CircleShape,
+                color = Color.White.copy(alpha = 0.95f),
+                shadowElevation = 2.dp,
+                border = BorderStroke(1.dp, Color.White),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = "Cài đặt",
+                        tint = Color(0xFF1E3A8A),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Hero Graphic Banner (Seamless full-bleed illustration from mockup)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1364f / 540f)
+                .clickable { onExploreClick() }
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.hero_banner_full),
+                contentDescription = "Hành trình tiếng Anh - Cùng LingoStudy chinh phục tiếng Anh!",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.FillWidth
+            )
+        }
+    }
+}
+
+// =============================================================================
+// SECTION C — CURRENT LEARNING LEVEL
+// =============================================================================
+
+@Composable
+private fun CurrentLevelSection(
+    levelName: String,
+    levelOrder: Int,
+    currentXp: Int,
+    requiredXp: Int
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        color = Color.White,
-        shape = RoundedCornerShape(28.dp),
-        shadowElevation = 3.dp
+            .padding(horizontal = 16.dp),
+        color = Color.White.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(26.dp),
+        border = BorderStroke(1.dp, Color.White),
+        shadowElevation = 2.dp
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFE0F2FE),
-                            Color(0xFFEFF6FF),
-                            Color.White
-                        )
-                    )
-                )
-                .padding(22.dp)
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Top Row: Refined Brand Signature Pill & Greeting
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Surface(
+                color = Color(0xFFEFF6FF),
+                shape = CircleShape,
+                modifier = Modifier.size(48.dp)
             ) {
-                Surface(
-                    color = Color(0xFFDBEAFE),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        text = "LingoStudy · English Companion",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = LingoBlue,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                    )
-                }
-
-                Text(
-                    text = "Hello, ${displayName.ifBlank { "Learner" }}! 👋",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF3B82F6)
-                )
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            // Headline Block
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Learn English.",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1E3A8A),
-                    lineHeight = 34.sp
-                )
-                Text(
-                    text = "Grow with Confidence.",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF2563EB),
-                    lineHeight = 34.sp
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Integrated Mascot Showcase
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(190.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // Soft Aura Glow behind mascot
-                Surface(
-                    modifier = Modifier.size(170.dp),
-                    shape = CircleShape,
-                    color = Color(0xFFDBEAFE).copy(alpha = 0.5f)
-                ) {}
-
-                Surface(
-                    modifier = Modifier.size(130.dp),
-                    shape = CircleShape,
-                    color = Color(0xFFBFDBFE).copy(alpha = 0.4f)
-                ) {}
-
-                // Mascot Asset
-                MascotView(
-                    modifier = Modifier.size(175.dp),
-                    expression = MascotExpression.HAPPY,
-                    enableAnimation = true
-                )
-
-                // Decorative Sparkles / Floating Badges
-                Surface(
-                    color = Color.White,
-                    shape = RoundedCornerShape(12.dp),
-                    shadowElevation = 2.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = 12.dp, y = 10.dp)
-                        .rotate(-4f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "✨", fontSize = 12.sp)
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "Interactive",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A8A)
-                        )
-                    }
-                }
-
-                Surface(
-                    color = Color.White,
-                    shape = RoundedCornerShape(12.dp),
-                    shadowElevation = 2.dp,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = (-12).dp, y = (-10).dp)
-                        .rotate(4f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "🎯", fontSize = 12.sp)
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "Real Situations",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A8A)
-                        )
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Text("🌟", fontSize = 24.sp)
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.width(12.dp))
 
-            // Refined Description
-            Text(
-                text = "LingoStudy is your interactive language companion built to guide you from everyday vocabulary to confident communication.",
-                fontSize = 14.sp,
-                color = Color(0xFF475569),
-                lineHeight = 21.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            // Primary CTA Button
-            Button(
-                onClick = onExploreClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(26.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
-            ) {
+            Column {
+                Text(
+                    text = "Trình độ hiện tại",
+                    fontSize = 11.sp,
+                    color = Color(0xFF64748B),
+                    fontWeight = FontWeight.Medium
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Explore LingoStudy",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// =============================================================================
-// SECTION B — WHY LINGOSTUDY? (EDITORIAL BENTO GRID)
-// =============================================================================
-
-@Composable
-private fun WhyLingoStudySection() {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = "Why LingoStudy?",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1E3A8A)
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        Text(
-            text = "Designed for clear, practical, and effective language acquisition.",
-            fontSize = 14.sp,
-            color = Color(0xFF64748B)
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Bento Item 1: Large Featured Card (Full Width)
-            Surface(
-                color = Color(0xFFE0F2FE),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Surface(
-                            color = Color(0xFFBAE6FD),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = "🎯 Core Purpose",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF0369A1),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
-                        }
-
-                        Text(text = "🗣️", fontSize = 24.sp)
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Text(
-                        text = "Practical Everyday Situations",
-                        fontSize = 18.sp,
+                        text = levelName.ifBlank { "Beginner 1" },
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1E3A8A)
                     )
-
-                    Spacer(Modifier.height(6.dp))
-
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "Learn English designed for real scenarios—airports, hotels, asking for directions, and daily conversations.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF334155),
-                        lineHeight = 19.sp
+                        text = "›",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF94A3B8)
                     )
                 }
             }
 
-            // Bento Row 2: 2 Smaller Cards Side-by-Side
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Card A: Organized Learning Path
-                Surface(
-                    color = Color(0xFFECFDF5),
-                    shape = RoundedCornerShape(22.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(text = "🗺️", fontSize = 28.sp)
+            Spacer(Modifier.weight(1f))
 
-                        Spacer(Modifier.height(10.dp))
-
-                        Text(
-                            text = "Organized Path",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF065F46)
-                        )
-
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = "Follow a step-by-step curriculum with progressive levels.",
-                            fontSize = 12.sp,
-                            color = Color(0xFF047857),
-                            lineHeight = 17.sp
-                        )
-                    }
-                }
-
-                // Card B: Interactive Lessons & Quizzes
-                Surface(
-                    color = Color(0xFFF3E8FF),
-                    shape = RoundedCornerShape(22.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Text(text = "🧩", fontSize = 28.sp)
-
-                        Spacer(Modifier.height(10.dp))
-
-                        Text(
-                            text = "Interactive Study",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF5B21B6)
-                        )
-
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = "Practice flashcards, listening, and quizzes with instant feedback.",
-                            fontSize = 12.sp,
-                            color = Color(0xFF6D28D9),
-                            lineHeight = 17.sp
-                        )
-                    }
-                }
-            }
-
-            // Bento Item 3: Wider Bottom Card
-            Surface(
-                color = Color(0xFFFEF3C7),
-                shape = RoundedCornerShape(22.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        color = Color(0xFFFDE68A),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(text = "📈", fontSize = 24.sp)
-                        }
-                    }
-
-                    Spacer(Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Continuous Progress Tracking",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF92400E)
-                        )
-
-                        Spacer(Modifier.height(3.dp))
-
-                        Text(
-                            text = "Monitor your growth over time with XP rewards, streaks, and completed milestones.",
-                            fontSize = 12.sp,
-                            color = Color(0xFFB45309),
-                            lineHeight = 17.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-// =============================================================================
-// SECTION C — YOUR LEARNING COMPANION
-// =============================================================================
-
-@Composable
-private fun LearningCompanionSection() {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = "Your Learning Companion",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1E3A8A)
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        Surface(
-            color = Color.White,
-            shape = RoundedCornerShape(24.dp),
-            shadowElevation = 2.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color(0xFFFFFBEB), Color.White)
-                        )
-                    )
-                    .padding(20.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    MascotView(
-                        modifier = Modifier.size(110.dp),
-                        expression = MascotExpression.EXCITED,
-                        enableAnimation = true
-                    )
-
-                    Spacer(Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Surface(
-                            color = Color(0xFFFEF3C7),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = "Always by your side 🦜",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFB45309),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
-                        }
-
-                        Spacer(Modifier.height(8.dp))
-
-                        Text(
-                            text = "Meet your study guide!",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A8A)
-                        )
-
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = "LingoStudy's friendly companion encourages you through every lesson, keeping language practice engaging and rewarding.",
-                            fontSize = 13.sp,
-                            color = Color(0xFF475569),
-                            lineHeight = 18.sp
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                Surface(
-                    color = Color(0xFFFEF8EE),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "💡 \"Small daily practice leads to big progress over time!\"",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF92400E),
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
-}
-
-// =============================================================================
-// SECTION D — HOW LINGOSTUDY WORKS (ILLUSTRATED JOURNEY TIMELINE)
-// =============================================================================
-
-@Composable
-private fun HowItWorksSection() {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = "How LingoStudy Works",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1E3A8A)
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        Text(
-            text = "A simple, structured 4-step journey to English fluency.",
-            fontSize = 14.sp,
-            color = Color(0xFF64748B)
-        )
-
-        Spacer(Modifier.height(18.dp))
-
-        val steps = listOf(
-            StepJourneyData(
-                stage = "STAGE 01 · START",
-                title = "Discover a Learning Path",
-                description = "Choose your level and follow a curated sequence of real-world units and lessons.",
-                nodeColor = LingoBlue,
-                badgeBg = Color(0xFFDBEAFE),
-                badgeText = Color(0xFF1E40AF)
-            ),
-            StepJourneyData(
-                stage = "STAGE 02 · STUDY",
-                title = "Explore Structured Lessons",
-                description = "Learn topic-focused content covering essential words, grammar rules, and expressions.",
-                nodeColor = Color(0xFF4F46E5),
-                badgeBg = Color(0xFFE0E7FF),
-                badgeText = Color(0xFF3730A3)
-            ),
-            StepJourneyData(
-                stage = "STAGE 03 · PRACTICE",
-                title = "Practice Interactive Activities",
-                description = "Master vocabulary flashcards, listening transcripts, pronunciation exercises, and quizzes.",
-                nodeColor = Color(0xFF7C3AED),
-                badgeBg = Color(0xFFEDE9FE),
-                badgeText = Color(0xFF5B21B6)
-            ),
-            StepJourneyData(
-                stage = "STAGE 04 · MASTERY",
-                title = "Review & Track Growth",
-                description = "Earn XP, complete modules, and watch your language skills grow day by day.",
-                nodeColor = LingoGreen,
-                badgeBg = Color(0xFFDCFCE7),
-                badgeText = Color(0xFF166534)
-            )
-        )
-
-        Column(modifier = Modifier.fillMaxWidth()) {
-            steps.forEachIndexed { index, step ->
-                Row(
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "$currentXp / ${requiredXp.coerceAtLeast(100)} XP",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF64748B)
+                )
+                Spacer(Modifier.height(5.dp))
+                val progress = (currentXp.toFloat() / requiredXp.coerceAtLeast(100).toFloat()).coerceIn(0f, 1f)
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min)
+                        .width(110.dp)
+                        .height(7.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFFE2E8F0))
                 ) {
-                    // Left Timeline Node Column
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(48.dp)
-                    ) {
-                        // Number Circle Node
-                        Surface(
-                            color = step.nodeColor,
-                            shape = CircleShape,
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "${index + 1}",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-
-                        // Connecting Line (if not last item)
-                        if (index < steps.size - 1) {
-                            Box(
-                                modifier = Modifier
-                                    .width(3.dp)
-                                    .fillMaxHeight()
-                                    .background(Color(0xFFCBD5E1))
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.width(14.dp))
-
-                    // Right Content Card
-                    Column(
+                    Box(
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(bottom = if (index < steps.size - 1) 20.dp else 0.dp)
-                    ) {
-                        Surface(
-                            color = Color.White,
-                            shape = RoundedCornerShape(20.dp),
-                            shadowElevation = 1.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Surface(
-                                    color = step.badgeBg,
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Text(
-                                        text = step.stage,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = step.badgeText,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                    )
-                                }
-
-                                Spacer(Modifier.height(8.dp))
-
-                                Text(
-                                    text = step.title,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A8A)
+                            .fillMaxWidth(progress.coerceAtLeast(0.08f))
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    listOf(Color(0xFF60A5FA), Color(0xFF2563EB))
                                 )
+                            )
+                    )
+                }
+            }
 
-                                Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.width(10.dp))
 
-                                Text(
-                                    text = step.description,
-                                    fontSize = 13.sp,
-                                    color = Color(0xFF475569),
-                                    lineHeight = 18.sp
-                                )
-                            }
-                        }
-                    }
+            Surface(
+                color = Color(0xFFFFFBEB),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(0.5.dp, Color(0xFFFDE68A))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⭐", fontSize = 11.sp)
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "Cấp $levelOrder",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFFD97706)
+                    )
                 }
             }
         }
     }
 }
 
-private data class StepJourneyData(
-    val stage: String,
-    val title: String,
-    val description: String,
-    val nodeColor: Color,
-    val badgeBg: Color,
-    val badgeText: Color
-)
-
 // =============================================================================
-// SECTION E — FINAL CALL TO ACTION
+// SECTION D — COMPACT STATISTIC CARDS
 // =============================================================================
 
 @Composable
-private fun FinalCtaSection(onStartClick: () -> Unit) {
+private fun StatisticsRowSection(
+    currentXp: Int,
+    streak: Int,
+    completedLessons: Int,
+    todayStudySeconds: Long,
+    todayStudyMinutes: Int
+) {
+    val displayStudyTime = when {
+        todayStudyMinutes >= 60 -> "${todayStudyMinutes / 60}h ${todayStudyMinutes % 60}m"
+        todayStudySeconds > 0 && todayStudyMinutes == 0 -> "${todayStudySeconds}s"
+        else -> "${todayStudyMinutes}m"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        StatCardMini(
+            icon = "⭐",
+            value = "$currentXp",
+            label = "Tổng XP",
+            bgColor = Color(0xFFFFFBEB),
+            modifier = Modifier.weight(1f)
+        )
+        StatCardMini(
+            icon = "🔥",
+            value = "$streak",
+            label = "Ngày học liên tiếp",
+            bgColor = Color(0xFFFEF2F2),
+            modifier = Modifier.weight(1f)
+        )
+        StatCardMini(
+            icon = "📚",
+            value = "$completedLessons",
+            label = "Bài học đã hoàn thành",
+            bgColor = Color(0xFFF3E8FF),
+            modifier = Modifier.weight(1f)
+        )
+        StatCardMini(
+            icon = "⏱️",
+            value = displayStudyTime,
+            label = "Tổng thời gian học",
+            bgColor = Color(0xFFECFDF5),
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StatCardMini(
+    icon: String,
+    value: String,
+    label: String,
+    bgColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = Color.White.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, Color.White),
+        shadowElevation = 2.dp,
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(11.dp)) {
+            Surface(
+                color = bgColor,
+                shape = CircleShape,
+                modifier = Modifier.size(34.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(text = icon, fontSize = 16.sp)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = value,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF1E3A8A)
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = label,
+                fontSize = 10.sp,
+                color = Color(0xFF64748B),
+                lineHeight = 13.sp,
+                maxLines = 2
+            )
+        }
+    }
+}
+
+// =============================================================================
+// SECTION E — CONTINUE LEARNING CARD
+// =============================================================================
+
+@Composable
+private fun ContinueLearningSection(
+    isNewUser: Boolean,
+    unfinishedLessonTitle: String,
+    unfinishedUnitTitle: String,
+    unfinishedProgressPct: Int,
+    onResumeClick: () -> Unit
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        color = Color(0xFF1E3A8A),
-        shape = RoundedCornerShape(28.dp)
+        shape = RoundedCornerShape(26.dp),
+        color = Color.White.copy(alpha = 0.95f),
+        border = BorderStroke(1.dp, Color.White),
+        shadowElevation = 2.dp
     ) {
-        Column(
-            modifier = Modifier.padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(26.dp))
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = if (isNewUser) {
+                            listOf(Color(0xFFFFFDF5), Color(0xFFFEF9C3).copy(alpha = 0.4f))
+                        } else {
+                            listOf(Color(0xFFF8FAFC), Color(0xFFEFF6FF).copy(alpha = 0.6f))
+                        }
+                    )
+                )
+                .padding(18.dp)
         ) {
-            Text(
-                text = "Your English journey starts here.",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                lineHeight = 28.sp
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                text = "Start exploring structured lessons today and build your skills step by step.",
-                fontSize = 14.sp,
-                color = Color(0xFF93C5FD),
-                textAlign = TextAlign.Center,
-                lineHeight = 20.sp
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            Button(
-                onClick = onStartClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(26.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(0.68f)) {
+                    Surface(
+                        color = if (isNewUser) Color(0xFFFEF3C7) else Color(0xFFDBEAFE),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text(
+                            text = if (isNewUser) "BẮT ĐẦU HÀNH TRÌNH 🚀" else "Tiếp tục học",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isNewUser) Color(0xFF92400E) else Color(0xFF2563EB),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
                     Text(
-                        text = "Start Learning",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = if (isNewUser) "Chào mừng bạn đến với LingoStudy!" else unfinishedLessonTitle,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1E3A8A)
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = Color(0xFF1E3A8A),
-                        modifier = Modifier.size(18.dp)
+
+                    Spacer(Modifier.height(3.dp))
+
+                    Text(
+                        text = if (isNewUser) "Học bài học đầu tiên để tích lũy XP và xây dựng thói quen mỗi ngày." else unfinishedUnitTitle,
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B)
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    if (!isNewUser) {
+                        val fraction = unfinishedProgressPct / 100f
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(Color(0xFFE2E8F0))
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(fraction.coerceAtLeast(0.05f))
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(
+                                            brush = Brush.horizontalGradient(
+                                                listOf(Color(0xFF60A5FA), Color(0xFF2563EB))
+                                            )
+                                        )
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "${(fraction * 5).toInt()} / 5 kỹ năng",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF64748B)
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                    }
+
+                    Button(
+                        onClick = onResumeClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp),
+                        shape = RoundedCornerShape(21.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isNewUser) Color(0xFF2563EB) else Color(0xFF1D4ED8)
+                        )
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (isNewUser) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = if (isNewUser) "Bắt đầu bài 1 ngay" else "Tiếp tục học ›",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                Column(
+                    modifier = Modifier.weight(0.32f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Speech bubble "Hello!"
+                    Surface(
+                        color = Color(0xFF38BDF8),
+                        shape = RoundedCornerShape(12.dp),
+                        shadowElevation = 1.dp
+                    ) {
+                        Text(
+                            text = "Hello! 👋",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    MascotView(
+                        modifier = Modifier.size(88.dp),
+                        expression = if (isNewUser) MascotExpression.EXCITED else MascotExpression.HAPPY,
+                        enableAnimation = true
                     )
                 }
             }
+        }
+    }
+}
+
+// =============================================================================
+// SECTION F — QUICK ACCESS
+// =============================================================================
+
+@Composable
+private fun QuickAccessSection(onNavigate: (String) -> Unit) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(
+            text = "Khám phá nhanh",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color(0xFF1E3A8A)
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            QuickAccessCard(
+                icon = Icons.AutoMirrored.Filled.MenuBook,
+                title = "Học tập",
+                desc = "Lộ trình học của bạn",
+                bgColor = Color(0xFFEFF6FF),
+                iconColor = Color(0xFF3B82F6),
+                modifier = Modifier.weight(1f).clickable { onNavigate("learn") }
+            )
+            QuickAccessCard(
+                icon = Icons.Default.Translate,
+                title = "Từ điển",
+                desc = "Tra cứu từ vựng",
+                bgColor = Color(0xFFF5F3FF),
+                iconColor = Color(0xFF8B5CF6),
+                modifier = Modifier.weight(1f).clickable { onNavigate("dictionary") }
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            QuickAccessCard(
+                icon = Icons.Default.AutoStories,
+                title = "Từ vựng",
+                desc = "Ôn tập & ghi nhớ",
+                bgColor = Color(0xFFECFDF5),
+                iconColor = Color(0xFF10B981),
+                modifier = Modifier.weight(1f).clickable { onNavigate("learn") }
+            )
+            QuickAccessCard(
+                icon = Icons.Default.Person,
+                title = "Cài đặt",
+                desc = "Tùy chỉnh ứng dụng",
+                bgColor = Color(0xFFFFF1F2),
+                iconColor = Color(0xFFF43F5E),
+                modifier = Modifier.weight(1f).clickable { onNavigate("me") }
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickAccessCard(
+    icon: ImageVector,
+    title: String,
+    desc: String,
+    bgColor: Color,
+    iconColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = Color.White.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, Color.White),
+        shadowElevation = 2.dp,
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = bgColor,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                Text(
+                    text = "›",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF94A3B8)
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF1E3A8A)
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = desc,
+                fontSize = 10.sp,
+                color = Color(0xFF64748B),
+                lineHeight = 14.sp
+            )
         }
     }
 }
@@ -922,15 +890,16 @@ private data class NavItemData(val label: String, val icon: ImageVector)
 @Composable
 private fun HomeBottomNav(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
     val navItems = listOf(
-        NavItemData("Home", Icons.Default.Home),
-        NavItemData("Learn", Icons.AutoMirrored.Filled.MenuBook),
-        NavItemData("Practice", Icons.Default.SportsEsports),
-        NavItemData("Me", Icons.Default.Person)
+        NavItemData("Trang chủ", Icons.Default.Home),
+        NavItemData("Học tập", Icons.AutoMirrored.Filled.MenuBook),
+        NavItemData("Từ điển", Icons.Default.Translate),
+        NavItemData("Cá nhân", Icons.Default.Person)
     )
 
     NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 0.dp
+        modifier = Modifier.clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+        containerColor = Color.White.copy(alpha = 0.97f),
+        tonalElevation = 3.dp
     ) {
         navItems.forEachIndexed { index, item ->
             NavigationBarItem(

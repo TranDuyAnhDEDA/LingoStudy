@@ -1,3 +1,92 @@
 <resources>
-    <string name="app_name">My Study App</string>
+    <string name="app_name">LingoStudy</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_learn">Học tập</string>
+    <string name="nav_dictionary">Từ điển</string>
+    <string name="nav_me">Cá nhân</string>
+
+    <!-- General -->
+    <string name="back">Quay lại</string>
+    <string name="loading">Đang tải...</string>
+    <string name="save">Lưu</string>
+    <string name="cancel">Hủy</string>
+
+    <!-- Auth Screens -->
+    <string name="login_title">Đăng nhập</string>
+    <string name="register_title">Đăng ký</string>
+    <string name="email_placeholder">Nhập email của bạn</string>
+    <string name="password_placeholder">Nhập mật khẩu</string>
+    <string name="name_placeholder">Nhập tên hiển thị</string>
+    <string name="no_account_prompt">Chưa có tài khoản? Đăng ký ngay</string>
+    <string name="has_account_prompt">Đã có tài khoản? Đăng nhập ngay</string>
+
+    <!-- Home Screen -->
+    <string name="home_hero_title">LingoStudy</string>
+    <string name="home_hero_subtitle">Hành trình làm chủ tiếng Anh</string>
+    <string name="home_hero_desc">Khám phá phương pháp học tập kết hợp thông minh giữa Từ vựng, Ngữ pháp, Luyện nghe và Phát âm.</string>
+    <string name="start_learning">Bắt đầu học ngay</string>
+
+    <!-- Learn Screens -->
+    <string name="program_overview_title">Chương trình học</string>
+    <string name="academic_program">CHƯƠNG TRÌNH HỌC</string>
+    <string name="core_objectives">Mục tiêu học tập cốt lõi:</string>
+    <string name="curriculum_levels">Các cấp độ khóa học</string>
+    <string name="explore_level">Khám phá cấp độ</string>
+    <string name="level_journey">Hành trình cấp độ</string>
+    <string name="adventure_map">BẢN ĐỒ HÀNH TRÌNH</string>
+    <string name="milestone_units">cột mốc bài học kết nối</string>
+    <string name="curriculum_path">Lộ trình học tập</string>
+    <string name="explore_unit">Khám phá bài học</string>
+    <string name="unit_roadmap">Lộ trình bài học</string>
+    <string name="unit_topic_collection">BỘ SƯU TẬP BÀI HỌC</string>
+    <string name="lessons">Bài học</string>
+    <string name="lesson_roadmap">Lộ trình bài học</string>
+    <string name="completed">Hoàn thành</string>
+    <string name="review_lesson">Ôn tập bài học</string>
+    <string name="open_lesson">Mở bài học</string>
+
+    <!-- Lesson Screen -->
+    <string name="lesson_overview">Tổng quan bài học</string>
+    <string name="lesson_activities">Các hoạt động học tập</string>
+    <string name="activity_vocab">Từ vựng</string>
+    <string name="activity_grammar">Ngữ pháp</string>
+    <string name="activity_listening">Luyện nghe</string>
+    <string name="activity_pronunciation">Phát âm</string>
+    <string name="activity_quiz">Kiểm tra</string>
+
+    <!-- Dictionary Screen -->
+    <string name="dictionary_title">Từ điển</string>
+    <string name="dictionary_subtitle">Khám phá từ mới mỗi ngày</string>
+    <string name="search_placeholder">Tìm kiếm từ tiếng Anh...</string>
+    <string name="search_button">Tìm kiếm</string>
+    <string name="intro_title">Tra cứu từ vựng tiếng Anh để khám phá ý nghĩa</string>
+    <string name="intro_desc">Nhận bản dịch tiếng Việt, định nghĩa tiếng Anh, phát âm và câu ví dụ theo thời gian thực.</string>
+    <string name="intro_try">Thử tra cứu:</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">Hồ sơ cá nhân</string>
+    <string name="resume_learning">TIẾP TỤC HỌC</string>
+    <string name="continue_learning">Tiếp tục học</string>
+    <string name="learning_statistics">Thống kê học tập</string>
+    <string name="total_xp">Tổng XP</string>
+    <string name="day_streak">Chuỗi ngày</string>
+    <string name="study_time">Thời gian học</string>
+    <string name="seven_day_activity">Hoạt động 7 ngày qua</string>
+    <string name="today">Hôm nay:</string>
+    <string name="skill_mastery">Mức độ thành thạo</string>
+    <string name="edit_name">Chỉnh sửa tên hiển thị</string>
+    <string name="sign_out">Đăng xuất</string>
+
+    <!-- Skill Common Strings -->
+    <string name="next">Tiếp theo</string>
+    <string name="finish">Hoàn thành</string>
+    <string name="check">Kiểm tra</string>
+    <string name="correct">Chính xác!</string>
+    <string name="incorrect">Sai rồi, hãy thử lại.</string>
+    <string name="listen">Nghe</string>
+    <string name="speak">Nói</string>
+    <string name="hold_to_record">Nhấn giữ để thu âm</string>
+
 </resources>

@@ -6,6 +6,7 @@ data class Pronunciation(
     val word: String = "",
     val phonetic: String = "",
     val audioUrl: String? = null,
-    val targetScore: Int = 0,
+    val targetScore: Int = 80,
+    val instructionVi: String? = null,
     val order: Int = 0
 )

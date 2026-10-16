@@ -1,12 +1,5 @@
 package com.example.mystudyapp.ui.screen.grammar
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,8 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -30,34 +25,35 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mystudyapp.ui.component.ActiveStudyTimeTracker
 import com.example.mystudyapp.ui.component.MascotExpression
 import com.example.mystudyapp.ui.component.MascotView
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.ui.theme.LingoGray
-import com.example.mystudyapp.ui.theme.LingoGrayLight
 import com.example.mystudyapp.ui.theme.LingoGreen
 import com.example.mystudyapp.viewmodel.GrammarUiModel
 import com.example.mystudyapp.viewmodel.GrammarViewModel
 import com.example.mystudyapp.viewmodel.GrammarViewModelFactory
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun GrammarScreen(
     lessonId: String,
@@ -65,6 +61,15 @@ fun GrammarScreen(
     viewModel: GrammarViewModel = viewModel(factory = GrammarViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scrollState = rememberScrollState()
+
+    val isScrolledToBottom by remember {
+        derivedStateOf {
+            scrollState.value >= (scrollState.maxValue - 80).coerceAtLeast(0) || !scrollState.canScrollForward
+        }
+    }
+
+    ActiveStudyTimeTracker(lessonId = lessonId, activityName = "grammar")
 
     Scaffold(
         containerColor = Color(0xFFF8FAFF),
@@ -74,97 +79,75 @@ fun GrammarScreen(
                 shadowElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFF1F5F9),
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clickable { onBackToLesson() }
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                modifier = Modifier.padding(8.dp),
-                                tint = Color(0xFF1E3A8A)
-                            )
-                        }
-
-                        Spacer(Modifier.width(16.dp))
-
-                        Text(
-                            text = uiState.lessonTitle.ifBlank { "Grammar" },
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A8A),
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        if (!uiState.isLoading && uiState.grammarList.isNotEmpty() && !uiState.isFinished) {
-                            val currentPos = uiState.currentIndex + 1
-                            val totalPos = uiState.grammarList.size
-                            Text(
-                                text = "$currentPos / $totalPos",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = LingoBlue
-                            )
-                        }
-                    }
-
-                    if (!uiState.isLoading && uiState.grammarList.isNotEmpty() && !uiState.isFinished) {
-                        Spacer(Modifier.height(10.dp))
-                        val progressRatio = (uiState.currentIndex + 1).toFloat() / uiState.grammarList.size
-                        LinearProgressIndicator(
-                            progress = { progressRatio },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = LingoBlue,
-                            trackColor = LingoGrayLight,
-                            strokeCap = StrokeCap.Round
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFF1F5F9),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clickable { onBackToLesson() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            modifier = Modifier.padding(8.dp),
+                            tint = Color(0xFF1E3A8A)
                         )
                     }
+
+                    Spacer(Modifier.width(16.dp))
+
+                    Text(
+                        text = if (uiState.showQuickQuiz) "Kiểm tra nhanh Ngữ pháp (5 câu)" else (uiState.lessonTitle.ifBlank { "Ngữ pháp" }),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E3A8A),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         },
         bottomBar = {
-            if (!uiState.isLoading && uiState.grammarList.isNotEmpty() && !uiState.isFinished) {
+            if (!uiState.isLoading && uiState.errorMessage == null && !uiState.isFinished && !uiState.showQuickQuiz) {
                 Surface(
                     color = Color.White,
                     shadowElevation = 8.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(modifier = Modifier.padding(16.dp)) {
-                        val isLast = uiState.currentIndex >= uiState.grammarList.size - 1
                         Button(
-                            onClick = { viewModel.nextGrammar() },
+                            onClick = { viewModel.onFinishReadingContent() },
+                            enabled = isScrolledToBottom,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
                             shape = RoundedCornerShape(26.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = LingoBlue,
+                                disabledContainerColor = Color(0xFFCBD5E1)
+                            )
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (isLast) "Finish Grammar" else "Next",
-                                    fontSize = 16.sp,
+                                    text = if (isScrolledToBottom) "Đã đọc xong · Làm bài kiểm tra" else "Cuộn xuống cuối để tiếp tục 📜",
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
                                 )
-                                Spacer(Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                if (isScrolledToBottom) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -188,12 +171,9 @@ fun GrammarScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
                     Text(
-                        text = uiState.errorMessage ?: "An error occurred.",
+                        text = uiState.errorMessage ?: "Có lỗi xảy ra.",
                         fontSize = 16.sp,
                         color = Color.Red,
                         textAlign = TextAlign.Center
@@ -203,38 +183,136 @@ fun GrammarScreen(
                         onClick = { onBackToLesson() },
                         colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
                     ) {
-                        Text("Back to Lesson")
+                        Text("Quay lại bài học")
                     }
                 }
             }
-        } else if (uiState.grammarList.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
+        } else if (uiState.showQuickQuiz) {
+            // 5-Question Quick Quiz View
+            val questions = uiState.quickQuizQuestions
+            val currentIndex = uiState.currentQuizIndex
+            val currentQuiz = questions.getOrNull(currentIndex)
+
+            if (currentQuiz != null) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "No grammar topics available for this lesson.",
-                        fontSize = 16.sp,
-                        color = LingoGray,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Button(
-                        onClick = { onBackToLesson() },
-                        colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
+                    Column {
+                        // Header info
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(color = Color(0xFFFEF3C7), shape = RoundedCornerShape(10.dp)) {
+                                Text(
+                                    text = "Câu ${currentIndex + 1} / ${questions.size}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFB45309),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                            Text(text = "Kiểm tra ngữ pháp", fontSize = 12.sp, color = Color(0xFF64748B))
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // Question card
+                        Surface(
+                            color = Color.White,
+                            shape = RoundedCornerShape(20.dp),
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Text(
+                                    text = currentQuiz.questionVi?.ifBlank { currentQuiz.question } ?: currentQuiz.question,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E3A8A)
+                                )
+
+                                Spacer(Modifier.height(16.dp))
+
+                                currentQuiz.options.forEach { option ->
+                                    val isSelected = uiState.selectedAnswers[currentIndex] == option
+                                    Surface(
+                                        color = if (isSelected) Color(0xFFE0E7FF) else Color(0xFFF8FAFF),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .clickable { viewModel.selectQuizAnswer(currentIndex, option) }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = isSelected,
+                                                onClick = { viewModel.selectQuizAnswer(currentIndex, option) },
+                                                colors = RadioButtonDefaults.colors(selectedColor = LingoBlue)
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                text = option,
+                                                fontSize = 15.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = Color(0xFF1E3A8A)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Navigation buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Back to Lesson")
+                        if (currentIndex > 0) {
+                            Button(
+                                onClick = { viewModel.prevQuizQuestion() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0), contentColor = Color(0xFF334155)),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Text("Câu trước")
+                            }
+                        } else {
+                            Spacer(Modifier.width(1.dp))
+                        }
+
+                        if (currentIndex < questions.size - 1) {
+                            Button(
+                                onClick = { viewModel.nextQuizQuestion() },
+                                colors = ButtonDefaults.buttonColors(containerColor = LingoBlue),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Text("Câu tiếp")
+                            }
+                        } else {
+                            val allAnswered = uiState.selectedAnswers.size >= questions.size
+                            Button(
+                                onClick = { viewModel.submitQuickQuiz() },
+                                enabled = allAnswered,
+                                colors = ButtonDefaults.buttonColors(containerColor = LingoGreen, disabledContainerColor = Color(0xFFCBD5E1)),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Text("Nộp bài")
+                            }
+                        }
                     }
                 }
             }
         } else if (uiState.isFinished) {
-            // Completion View
+            // Finished View
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -254,7 +332,7 @@ fun GrammarScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         MascotView(
-                            modifier = Modifier.size(160.dp),
+                            modifier = Modifier.size(150.dp),
                             expression = MascotExpression.EXCITED,
                             enableAnimation = true
                         )
@@ -271,7 +349,7 @@ fun GrammarScreen(
                         Spacer(Modifier.height(12.dp))
 
                         Text(
-                            text = "Grammar Complete!",
+                            text = "Hoàn thành bài Ngữ pháp!",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF1E3A8A)
@@ -280,54 +358,58 @@ fun GrammarScreen(
                         Spacer(Modifier.height(6.dp))
 
                         Text(
-                            text = "${uiState.completedCount} / ${uiState.grammarList.size} topics completed",
+                            text = "Điểm bài kiểm tra: ${uiState.quizScore} / 5 câu đúng",
                             fontSize = 15.sp,
-                            color = LingoGray
+                            fontWeight = FontWeight.Bold,
+                            color = LingoBlue
                         )
 
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(20.dp))
 
-                        Button(
-                            onClick = { onBackToLesson() },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(26.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Text(
-                                text = "Back to Lesson",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            Button(
+                                onClick = { viewModel.retakeQuickQuiz() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0), contentColor = Color(0xFF334155))
+                            ) {
+                                Text("Làm lại quiz", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = { onBackToLesson() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
+                            ) {
+                                Text("Về bài học", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
             }
         } else {
-            // Active Grammar Card View
-            val currentGrammar = uiState.grammarList.getOrNull(uiState.currentIndex)
-            if (currentGrammar != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AnimatedContent(
-                        targetState = currentGrammar,
-                        transitionSpec = {
-                            (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                                slideOutHorizontally { width -> -width } + fadeOut()
-                            )
-                        },
-                        label = "grammar_card_transition"
-                    ) { grammar ->
-                        GrammarCard(grammar = grammar)
-                    }
+            // Active Grammar Reading Content
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                uiState.grammarList.forEach { grammar ->
+                    GrammarCard(grammar = grammar)
                 }
+
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
@@ -337,49 +419,47 @@ fun GrammarScreen(
 private fun GrammarCard(grammar: GrammarUiModel) {
     Surface(
         color = Color.White,
-        shape = RoundedCornerShape(28.dp),
-        shadowElevation = 4.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
+        shape = RoundedCornerShape(24.dp),
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(20.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Surface(
                 color = Color(0xFFFEF3C7),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text(
-                    text = "Grammar Topic",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    text = "BÀI ĐỌC NGỮ PHÁP",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFFB45309),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 )
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = grammar.title,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF1E3A8A)
-            )
 
             Spacer(Modifier.height(12.dp))
 
             Text(
+                text = grammar.title,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF1E3A8A)
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
                 text = grammar.explanation,
-                fontSize = 15.sp,
+                fontSize = 14.sp,
                 color = Color(0xFF334155),
                 lineHeight = 22.sp
             )
 
             if (grammar.examples.isNotEmpty()) {
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
                 Box(
                     modifier = Modifier
@@ -390,20 +470,28 @@ private fun GrammarCard(grammar: GrammarUiModel) {
                 ) {
                     Column {
                         Text(
-                            text = "Examples:",
+                            text = "Mẫu câu ví dụ:",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = LingoBlue
                         )
                         Spacer(Modifier.height(8.dp))
-                        grammar.examples.forEach { example ->
+                        grammar.examples.forEachIndexed { idx, example ->
+                            val trans = grammar.examplesVi.getOrNull(idx)
                             Text(
                                 text = "• $example",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF1E3A8A),
-                                modifier = Modifier.padding(vertical = 3.dp)
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1E3A8A)
                             )
+                            if (!trans.isNullOrBlank()) {
+                                Text(
+                                    text = "  ($trans)",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF64748B),
+                                    modifier = Modifier.padding(bottom = 6.dp)
+                                )
+                            }
                         }
                     }
                 }

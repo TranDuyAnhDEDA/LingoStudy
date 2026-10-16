@@ -99,7 +99,7 @@ fun ProgramOverviewScreen(
                     Spacer(Modifier.width(16.dp))
 
                     Text(
-                        text = uiState.program?.title ?: "Program Overview",
+                        text = uiState.program?.titleVi ?: uiState.program?.title ?: "Tổng quan chương trình",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF1E3A8A)
@@ -150,7 +150,7 @@ fun ProgramOverviewScreen(
                                     shape = RoundedCornerShape(14.dp)
                                 ) {
                                     Text(
-                                        text = "ACADEMIC PROGRAM · ${program?.targetAudience.orEmpty().ifBlank { "All Learners" }}",
+                                        text = "CHƯƠNG TRÌNH HỌC · ${(program?.targetAudienceVi ?: program?.targetAudience).orEmpty().ifBlank { "Tất cả học viên" }}",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = LingoBlue,
@@ -166,7 +166,7 @@ fun ProgramOverviewScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = program?.title ?: "Program Overview",
+                                            text = program?.titleVi ?: program?.title ?: "Tổng quan chương trình",
                                             fontSize = 24.sp,
                                             fontWeight = FontWeight.ExtraBold,
                                             color = Color(0xFF1E3A8A),
@@ -176,7 +176,7 @@ fun ProgramOverviewScreen(
                                         Spacer(Modifier.height(6.dp))
 
                                         Text(
-                                            text = program?.description ?: "",
+                                            text = program?.descriptionVi ?: program?.description ?: "",
                                             fontSize = 13.sp,
                                             color = Color(0xFF475569),
                                             lineHeight = 19.sp
@@ -192,7 +192,8 @@ fun ProgramOverviewScreen(
                                     )
                                 }
 
-                                if (program?.learningObjectives?.isNotEmpty() == true) {
+                                val objectives = program?.learningObjectivesVi ?: program?.learningObjectives ?: emptyList()
+                                if (objectives.isNotEmpty()) {
                                     Spacer(Modifier.height(16.dp))
 
                                     Surface(
@@ -202,13 +203,13 @@ fun ProgramOverviewScreen(
                                     ) {
                                         Column(modifier = Modifier.padding(14.dp)) {
                                             Text(
-                                                text = "Core Learning Objectives:",
+                                                text = "Mục tiêu học tập cốt lõi:",
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = Color(0xFF1E3A8A)
                                             )
                                             Spacer(Modifier.height(6.dp))
-                                            program.learningObjectives.forEach { objective ->
+                                            objectives.forEach { objective ->
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     modifier = Modifier.padding(vertical = 2.dp)
@@ -239,7 +240,7 @@ fun ProgramOverviewScreen(
                 item {
                     EntranceWrapper(delayMillis = 200) {
                         Text(
-                            text = "Curriculum Levels",
+                            text = "Các cấp độ học tập",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF1E3A8A)
@@ -269,7 +270,7 @@ fun ProgramOverviewScreen(
                                     Spacer(Modifier.height(12.dp))
 
                                     Text(
-                                        text = "No levels available yet",
+                                        text = "Chưa có cấp độ nào",
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF1E3A8A)
@@ -278,7 +279,7 @@ fun ProgramOverviewScreen(
                                     Spacer(Modifier.height(6.dp))
 
                                     Text(
-                                        text = "Learning levels for this program are being prepared. Please check back later!",
+                                        text = "Nội dung các cấp độ học tập đang được chuẩn bị. Vui lòng quay lại sau!",
                                         fontSize = 13.sp,
                                         color = LingoGray,
                                         textAlign = TextAlign.Center,
@@ -293,7 +294,7 @@ fun ProgramOverviewScreen(
                                         shape = RoundedCornerShape(22.dp),
                                         modifier = Modifier.height(46.dp)
                                     ) {
-                                        Text("Back to Program Selection", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                        Text("Quay lại chọn chương trình", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -322,7 +323,7 @@ fun ProgramOverviewScreen(
                                             shape = RoundedCornerShape(12.dp)
                                         ) {
                                             Text(
-                                                text = "LEVEL ${level.order}",
+                                                text = "CẤP ĐỘ ${level.order}",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.ExtraBold,
                                                 color = Color(0xFF047857),
@@ -346,7 +347,7 @@ fun ProgramOverviewScreen(
                                                 )
                                                 Spacer(Modifier.width(4.dp))
                                                 Text(
-                                                    text = "${level.xpRequired} XP Goal",
+                                                    text = "Mục tiêu ${level.xpRequired} XP",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = Color(0xFFB45309)
@@ -358,16 +359,17 @@ fun ProgramOverviewScreen(
                                     Spacer(Modifier.height(12.dp))
 
                                     Text(
-                                        text = level.name,
+                                        text = level.nameVi ?: level.name,
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = Color(0xFF1E3A8A)
                                     )
 
-                                    if (level.description.isNotBlank()) {
+                                    val lvlDesc = level.descriptionVi ?: level.description
+                                    if (lvlDesc.isNotBlank()) {
                                         Spacer(Modifier.height(6.dp))
                                         Text(
-                                            text = level.description,
+                                            text = lvlDesc,
                                             fontSize = 13.sp,
                                             color = Color(0xFF475569),
                                             lineHeight = 18.sp
@@ -385,7 +387,7 @@ fun ProgramOverviewScreen(
                                         colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("Explore Level Curriculum", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            Text("Khám phá cấp độ học tập", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                             Spacer(Modifier.width(8.dp))
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,

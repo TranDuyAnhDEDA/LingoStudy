@@ -74,8 +74,8 @@ class PronunciationViewModelTest {
 
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
-        val pronun1 = Pronunciation("p1", "lesson_3_1_1", "airport", "/ˈeəpɔːt/", "", 80)
-        val pronun2 = Pronunciation("p2", "lesson_3_1_1", "boarding", "/ˈbɔːdɪŋ/", "", 80)
+        val pronun1 = Pronunciation("p1", "lesson_3_1_1", "airport", "/ˈeəpɔːt/", "", 80, null, 1)
+        val pronun2 = Pronunciation("p2", "lesson_3_1_1", "boarding", "/ˈbɔːdɪŋ/", "", 80, null, 2)
 
         val fakeLearningRepo = FakeLearningRepository(
             lessonMap = mapOf("lesson_3_1_1" to testLesson),
@@ -123,9 +123,9 @@ class PronunciationViewModelTest {
 
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
-        val pronun1 = Pronunciation("p1", "lesson_3_1_1", "airport", "/ˈeəpɔːt/")
-        val pronun2 = Pronunciation("p2", "lesson_3_1_1", "boarding", "/ˈbɔːdɪŋ/")
-        val pronun3 = Pronunciation("p3", "lesson_3_1_1", "passport", "/ˈpɑːspɔːt/")
+        val pronun1 = Pronunciation("p1", "lesson_3_1_1", "airport", "/ˈeəpɔːt/", null, 80, null, 1)
+        val pronun2 = Pronunciation("p2", "lesson_3_1_1", "boarding", "/ˈbɔːdɪŋ/", null, 80, null, 2)
+        val pronun3 = Pronunciation("p3", "lesson_3_1_1", "passport", "/ˈpɑːspɔːt/", null, 80, null, 3)
 
         val lessonProgress = LessonProgress(lessonId = "lesson_3_1_1", lastPronunciationIndex = 2, pronunciationCompleted = false)
 

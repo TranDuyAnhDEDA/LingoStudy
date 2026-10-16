@@ -75,8 +75,8 @@ class VocabularyViewModelTest {
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
         val vocabList = listOf(
-            Vocabulary("v1", "lesson_3_1_1", "boarding pass", "thẻ lên máy bay"),
-            Vocabulary("v2", "lesson_3_1_1", "passport", "hộ chiếu")
+            Vocabulary("v1", "lesson_3_1_1", "boarding pass", "thẻ lên máy bay", null, "noun", "", null, "", null, null, 1),
+            Vocabulary("v2", "lesson_3_1_1", "passport", "hộ chiếu", null, "noun", "", null, "", null, null, 2)
         )
 
         val fakeLearningRepo = FakeLearningRepository(
@@ -127,9 +127,9 @@ class VocabularyViewModelTest {
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
         val vocabList = listOf(
-            Vocabulary("v1", "lesson_3_1_1", "boarding pass", "thẻ lên máy bay"),
-            Vocabulary("v2", "lesson_3_1_1", "passport", "hộ chiếu"),
-            Vocabulary("v3", "lesson_3_1_1", "luggage", "hành lý")
+            Vocabulary("v1", "lesson_3_1_1", "boarding pass", "thẻ lên máy bay", null, "noun", "", null, "", null, null, 1),
+            Vocabulary("v2", "lesson_3_1_1", "passport", "hộ chiếu", null, "noun", "", null, "", null, null, 2),
+            Vocabulary("v3", "lesson_3_1_1", "luggage", "hành lý", null, "noun", "", null, "", null, null, 3)
         )
 
         val lessonProgress = LessonProgress(lessonId = "lesson_3_1_1", lastVocabularyIndex = 2, vocabularyCompleted = false)

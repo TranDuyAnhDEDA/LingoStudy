@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mystudyapp.data.model.LessonProgress
-import com.example.mystudyapp.data.model.Vocabulary
 import com.example.mystudyapp.data.repository.AuthRepository
 import com.example.mystudyapp.data.repository.AuthRepositoryImpl
 import com.example.mystudyapp.data.repository.LearningRepository
@@ -22,8 +21,10 @@ data class VocabularyUiModel(
     val id: String,
     val word: String,
     val meaning: String,
+    val meaningVi: String? = null,
     val partOfSpeech: String,
     val example: String,
+    val exampleVi: String? = null,
     val translation: String,
     val audioUrl: String? = null,
     val imageUrl: String? = null
@@ -95,7 +96,7 @@ class VocabularyViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            lessonTitle = lesson?.title ?: "Lesson Vocabulary",
+                            lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Từ vựng bài học",
                             vocabularyList = emptyList(),
                             errorMessage = null
                         )
@@ -108,8 +109,10 @@ class VocabularyViewModel(
                         id = v.id,
                         word = v.word,
                         meaning = v.meaning,
+                        meaningVi = v.meaningVi,
                         partOfSpeech = v.partOfSpeech,
                         example = v.example,
+                        exampleVi = v.exampleVi,
                         translation = v.translation,
                         audioUrl = v.audioUrl,
                         imageUrl = v.imageUrl
@@ -117,25 +120,23 @@ class VocabularyViewModel(
                 }
 
                 val lastIndex = lessonProgress?.lastVocabularyIndex ?: 0
-                val startingIndex = if (lastIndex in uiModels.indices && !(lessonProgress?.vocabularyCompleted == true)) {
+                val isAlreadyFinished = (lessonProgress?.vocabularyCompleted == true)
+                val startingIndex = if (lastIndex in uiModels.indices && !isAlreadyFinished) {
                     lastIndex
                 } else {
                     0
                 }
-
-                val isAlreadyFinished = (lessonProgress?.vocabularyCompleted == true)
-                val completedCount = if (isAlreadyFinished) uiModels.size else startingIndex
 
                 _uiState.value = VocabularyUiState(
                     isLoading = false,
                     isAuthenticated = true,
                     errorMessage = null,
                     lessonId = lessonId,
-                    lessonTitle = lesson?.title ?: "Lesson Vocabulary",
+                    lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Từ vựng bài học",
                     vocabularyList = uiModels,
-                    currentIndex = if (isAlreadyFinished) uiModels.size - 1 else startingIndex,
-                    completedCount = completedCount,
-                    isFinished = isAlreadyFinished
+                    currentIndex = startingIndex,
+                    completedCount = if (isAlreadyFinished) uiModels.size else startingIndex,
+                    isFinished = false
                 )
             }
         }
@@ -209,8 +210,17 @@ class VocabularyViewModel(
         }
     }
 
+    fun restartReview() {
+        _uiState.update {
+            it.copy(
+                currentIndex = 0,
+                isFinished = false
+            )
+        }
+    }
+
     private fun calculateLessonProgressPct(vocabularyCompleted: Boolean): Int {
-        return if (vocabularyCompleted) 20 else 10
+        return if (vocabularyCompleted) 25 else 10
     }
 }
 

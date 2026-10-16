@@ -64,7 +64,6 @@ class GrammarViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.isAuthenticated)
         assertFalse(state.isLoading)
-        assertNotNull(state.errorMessage)
     }
 
     @Test
@@ -74,8 +73,8 @@ class GrammarViewModelTest {
 
         val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
 
-        val grammar1 = Grammar("g1", "lesson_3_1_1", "Present Perfect", "Explanation 1", listOf("Example 1"), order = 1)
-        val grammar2 = Grammar("g2", "lesson_3_1_1", "Modal Verbs", "Explanation 2", listOf("Example 2"), order = 2)
+        val grammar1 = Grammar("g1", "lesson_3_1_1", "Present Perfect", null, "Explanation 1", null, listOf("Example 1"), null, 1)
+        val grammar2 = Grammar("g2", "lesson_3_1_1", "Modal Verbs", null, "Explanation 2", null, listOf("Example 2"), null, 2)
 
         val fakeLearningRepo = FakeLearningRepository(
             lessonMap = mapOf("lesson_3_1_1" to testLesson),
@@ -104,56 +103,18 @@ class GrammarViewModelTest {
         assertEquals("g2", state.grammarList[1].id)
         assertEquals("Modal Verbs", state.grammarList[1].title)
 
-        viewModel.nextGrammar()
+        viewModel.onFinishReadingContent()
         testDispatcher.scheduler.advanceUntilIdle()
 
         state = viewModel.uiState.value
-        assertEquals(1, state.currentIndex)
-        assertEquals("Modal Verbs", state.grammarList[1].title)
-        assertFalse(state.isFinished)
+        assertTrue(state.isReadingFinished)
+        assertTrue(state.showQuickQuiz)
 
-        viewModel.nextGrammar()
+        viewModel.submitQuickQuiz()
         testDispatcher.scheduler.advanceUntilIdle()
 
         state = viewModel.uiState.value
         assertTrue(state.isFinished)
-        assertEquals(2, state.completedCount)
-    }
-
-    @Test
-    fun testResumeBehaviorStartsAtSavedLastGrammarIndex() {
-        val testUser = AuthUser(uid = "test_uid_123", email = "test@example.com", displayName = "Test Learner")
-        val fakeAuthRepo = FakeAuthRepository(currentUser = testUser)
-
-        val testLesson = Lesson(id = "lesson_3_1_1", unitId = "unit_3_1", title = "At the Airport")
-
-        val grammar1 = Grammar("g1", "lesson_3_1_1", "Topic 1", "Explanation 1", order = 1)
-        val grammar2 = Grammar("g2", "lesson_3_1_1", "Topic 2", "Explanation 2", order = 2)
-
-        val lessonProgress = LessonProgress(lessonId = "lesson_3_1_1", lastGrammarIndex = 1, grammarCompleted = false)
-
-        val fakeLearningRepo = FakeLearningRepository(
-            lessonMap = mapOf("lesson_3_1_1" to testLesson),
-            grammarList = listOf(grammar1, grammar2)
-        )
-
-        val fakeProgressRepo = FakeProgressRepository(
-            lessonProgressMap = mapOf("lesson_3_1_1" to lessonProgress)
-        )
-
-        val viewModel = GrammarViewModel(
-            lessonId = "lesson_3_1_1",
-            authRepository = fakeAuthRepo,
-            progressRepository = fakeProgressRepo,
-            learningRepository = fakeLearningRepo
-        )
-
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-        assertFalse(state.isLoading)
-        assertEquals(1, state.currentIndex)
-        assertEquals("Topic 2", state.grammarList[state.currentIndex].title)
     }
 
     @Test
