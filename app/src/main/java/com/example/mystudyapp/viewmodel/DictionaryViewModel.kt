@@ -13,13 +13,33 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class PopularWordItem(
+    val word: String,
+    val illustrationType: String
+)
+
+val DEFAULT_POPULAR_WORDS = listOf(
+    PopularWordItem("apple", "apple"),
+    PopularWordItem("house", "house"),
+    PopularWordItem("cat", "cat"),
+    PopularWordItem("dog", "dog"),
+    PopularWordItem("sun", "sun"),
+    PopularWordItem("tree", "tree"),
+    PopularWordItem("book", "book"),
+    PopularWordItem("school", "school")
+)
+
 data class DictionaryUiState(
     val searchQuery: String = "",
     val activeQuery: String = "",
     val isLoading: Boolean = false,
     val result: DictionaryResult? = null,
     val errorMessage: String? = null,
-    val sampleWords: List<String> = listOf("hello", "companion", "curriculum", "journey", "vocabulary", "explore")
+    val sampleWords: List<String> = listOf("apple", "house", "cat", "dog", "sun", "tree", "book", "school"),
+    val popularWords: List<PopularWordItem> = DEFAULT_POPULAR_WORDS,
+    val searchHistory: List<String> = emptyList(),
+    val isFavorite: Boolean = false,
+    val showAllHistoryDialog: Boolean = false
 )
 
 class DictionaryViewModel(
@@ -30,6 +50,22 @@ class DictionaryViewModel(
     val uiState: StateFlow<DictionaryUiState> = _uiState.asStateFlow()
 
     private var searchJob: Job? = null
+
+    init {
+        refreshLocalData()
+    }
+
+    fun refreshLocalData() {
+        val history = repository.getSearchHistory()
+        val active = _uiState.value.activeQuery
+        val isFav = if (active.isNotBlank()) repository.isFavorite(active) else false
+        _uiState.update {
+            it.copy(
+                searchHistory = history,
+                isFavorite = isFav
+            )
+        }
+    }
 
     fun onQueryChanged(newQuery: String) {
         _uiState.update { it.copy(searchQuery = newQuery) }
@@ -43,7 +79,8 @@ class DictionaryViewModel(
                 activeQuery = "",
                 isLoading = false,
                 result = null,
-                errorMessage = null
+                errorMessage = null,
+                isFavorite = false
             )
         }
     }
@@ -64,7 +101,8 @@ class DictionaryViewModel(
                 searchQuery = trimmed,
                 activeQuery = trimmed,
                 isLoading = true,
-                errorMessage = null
+                errorMessage = null,
+                isFavorite = repository.isFavorite(trimmed)
             )
         }
 
@@ -72,11 +110,14 @@ class DictionaryViewModel(
             repository.lookupWord(trimmed).collect { result ->
                 result.fold(
                     onSuccess = { dictResult ->
+                        val updatedHistory = repository.getSearchHistory().ifEmpty { listOf(trimmed.lowercase()) }
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
                                 result = dictResult,
-                                errorMessage = null
+                                errorMessage = null,
+                                searchHistory = updatedHistory,
+                                isFavorite = repository.isFavorite(trimmed)
                             )
                         }
                     },
@@ -85,13 +126,39 @@ class DictionaryViewModel(
                             it.copy(
                                 isLoading = false,
                                 result = null,
-                                errorMessage = error.message ?: "Failed to find dictionary definition."
+                                errorMessage = error.message ?: "Không tìm thấy từ '$trimmed' trong từ điển.",
+                                isFavorite = false
                             )
                         }
                     }
                 )
             }
         }
+    }
+
+    fun toggleFavorite() {
+        val currentWord = _uiState.value.result?.word ?: _uiState.value.activeQuery
+        if (currentWord.isBlank()) return
+        val newFavStatus = repository.toggleFavorite(currentWord)
+        _uiState.update { it.copy(isFavorite = newFavStatus) }
+    }
+
+    fun removeHistoryItem(word: String) {
+        repository.removeSearchHistory(word)
+        _uiState.update {
+            it.copy(searchHistory = repository.getSearchHistory())
+        }
+    }
+
+    fun clearAllHistory() {
+        repository.clearSearchHistory()
+        _uiState.update {
+            it.copy(searchHistory = emptyList(), showAllHistoryDialog = false)
+        }
+    }
+
+    fun setShowAllHistoryDialog(show: Boolean) {
+        _uiState.update { it.copy(showAllHistoryDialog = show) }
     }
 }
 

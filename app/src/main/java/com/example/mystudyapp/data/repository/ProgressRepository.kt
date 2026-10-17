@@ -19,4 +19,5 @@ interface ProgressRepository {
     fun getDailyStudyTime(uid: String, dateString: String): Flow<Result<DailyStudyTime?>> = flowOf(Result.success(null))
     fun getLast7DaysStudyTime(uid: String): Flow<Result<List<DailyStudyTime>>> = flowOf(Result.success(emptyList()))
     fun getAllTimeStudyTime(uid: String): Flow<Result<Long>> = flowOf(Result.success(0L))
+    fun getLearningHistory(uid: String): Flow<Result<List<LessonProgress>>> = flowOf(Result.success(emptyList()))
 }

@@ -31,11 +31,14 @@ data class HomeUiState(
     val errorMessage: String? = null,
     val isNewUser: Boolean = false,
     val displayName: String = "",
+    val avatarId: String = "boy_hoodie",
+    val customAvatarPath: String? = null,
     val streak: Int = 0,
     val levelName: String = "",
     val levelOrder: Int = 1,
     val currentXp: Int = 0,
     val requiredXp: Int = 900,
+    val currentUnitId: String = "unit_b1_1",
     val currentLessonId: String = "",
     val currentLessonTitle: String = "",
     val currentLessonDescription: String = "",
@@ -49,6 +52,8 @@ data class HomeUiState(
     val pronunciationProgress: Int = 0,
     val completedLessons: Int = 0,
     val totalLessons: Int = 0,
+    val unitCompletedLessons: Int = 0,
+    val unitTotalLessons: Int = 3,
     val unfinishedLessonProgressPct: Int = 0,
     val unfinishedSkillsCount: Int = 0,
     val todayStudySeconds: Long = 0L,
@@ -139,22 +144,54 @@ class HomeViewModel(
                                     } else null
                                     val program = programResult?.getOrNull()
 
-                                    var skillsDone = 0
-                                    if (lessonProgress?.vocabularyCompleted == true) skillsDone++
-                                    if (lessonProgress?.grammarCompleted == true) skillsDone++
-                                    if (lessonProgress?.listeningCompleted == true) skillsDone++
-                                    if (lessonProgress?.pronunciationCompleted == true) skillsDone++
-                                    if (lessonProgress?.quizCompleted == true) skillsDone++
+                                    val currentUnitId = unit?.id ?: lesson?.unitId ?: "unit_b1_1"
+                                    val calculatedResumeRoute = "unit/$currentUnitId"
 
-                                    val resumeAct = progress.currentActivity
-                                    val calculatedResumeRoute = if (!resumeAct.isNullOrBlank()) {
-                                        "$resumeAct/$currentLessonId"
+                                    val unitLessonsRes = learningRepository.getLessonsByUnit(currentUnitId).firstOrNull()?.getOrNull()
+                                    val unitLessons = if (!unitLessonsRes.isNullOrEmpty()) {
+                                        unitLessonsRes
                                     } else {
-                                        "lesson/$currentLessonId"
+                                        com.example.mystudyapp.data.seed.BeginnerCurriculumData.lessons.filter { it.unitId == currentUnitId }.sortedBy { it.order }
                                     }
 
-                                    val isNewUser = (progress.completedLessons == 0) &&
-                                            (lessonProgress == null || (!lessonProgress.completed && lessonProgress.progress == 0 && lessonProgress.lastAccessedAt == null))
+                                    var unitCompletedCount = 0
+                                    for (l in unitLessons) {
+                                        val lp = progressRepository.getLessonProgress(uid, l.id).firstOrNull()?.getOrNull()
+                                        if (lp?.completed == true) {
+                                            unitCompletedCount++
+                                        }
+                                    }
+                                    val unitTotal = if (unitLessons.isNotEmpty()) unitLessons.size else 3
+
+                                    var resolvedLesson = lesson
+                                    var resolvedLessonProgress = lessonProgress
+                                    var activeLessonId = currentLessonId
+
+                                    // Self-heal: If tracked lesson is already completed, find next unfinished lesson in unit
+                                    if (lessonProgress?.completed == true) {
+                                        val currentIndex = unitLessons.indexOfFirst { it.id == activeLessonId }
+                                        if (currentIndex != -1) {
+                                            val nextUnfinished = unitLessons.drop(currentIndex).firstOrNull { l ->
+                                                val lp = progressRepository.getLessonProgress(uid, l.id).firstOrNull()?.getOrNull()
+                                                lp?.completed != true
+                                            }
+                                            if (nextUnfinished != null) {
+                                                activeLessonId = nextUnfinished.id
+                                                resolvedLesson = nextUnfinished
+                                                resolvedLessonProgress = progressRepository.getLessonProgress(uid, nextUnfinished.id).firstOrNull()?.getOrNull()
+                                            }
+                                        }
+                                    }
+
+                                    var skillsDone = 0
+                                    if (resolvedLessonProgress?.vocabularyCompleted == true) skillsDone++
+                                    if (resolvedLessonProgress?.grammarCompleted == true) skillsDone++
+                                    if (resolvedLessonProgress?.listeningCompleted == true) skillsDone++
+                                    if (resolvedLessonProgress?.pronunciationCompleted == true) skillsDone++
+                                    if (resolvedLessonProgress?.quizCompleted == true) skillsDone++
+
+                                    val isNewUser = (progress.completedLessons == 0) && (unitCompletedCount == 0) &&
+                                            (resolvedLessonProgress == null || (!resolvedLessonProgress.completed && resolvedLessonProgress.progress == 0 && resolvedLessonProgress.lastAccessedAt == null))
 
                                     HomeUiState(
                                         isLoading = false,
@@ -162,25 +199,30 @@ class HomeViewModel(
                                         errorMessage = null,
                                         isNewUser = isNewUser,
                                         displayName = profile.displayName.ifBlank { "Bạn học viên" },
+                                        avatarId = profile.avatarId,
+                                        customAvatarPath = profile.customAvatarPath,
                                         streak = profile.streak,
                                         levelName = currentLevelName,
                                         levelOrder = currentLevelOrder,
                                         currentXp = profile.xp,
                                         requiredXp = currentLevelRequiredXp,
-                                        currentLessonId = currentLessonId,
-                                        currentLessonTitle = lesson?.titleVi ?: lesson?.title ?: "Saying Hello & Goodbye",
-                                        currentLessonDescription = lesson?.descriptionVi ?: lesson?.description ?: "",
+                                        currentUnitId = currentUnitId,
+                                        currentLessonId = activeLessonId,
+                                        currentLessonTitle = resolvedLesson?.titleVi ?: resolvedLesson?.title ?: "Saying Hello & Goodbye",
+                                        currentLessonDescription = resolvedLesson?.descriptionVi ?: resolvedLesson?.description ?: "",
                                         currentUnitTitle = unit?.titleVi ?: unit?.title ?: "Bài 1: Chào hỏi & Giới thiệu",
                                         currentProgramTitle = program?.titleVi ?: program?.title ?: "Tiếng Anh cho người mới bắt đầu",
-                                        currentLessonEstimatedMinutes = lesson?.estimatedMinutes ?: 8,
-                                        currentLessonXpReward = lesson?.xpReward ?: 30,
+                                        currentLessonEstimatedMinutes = resolvedLesson?.estimatedMinutes ?: 8,
+                                        currentLessonXpReward = resolvedLesson?.xpReward ?: 30,
                                         vocabularyProgress = progress.vocabularyProgress,
                                         grammarProgress = progress.grammarProgress,
                                         listeningProgress = progress.listeningProgress,
                                         pronunciationProgress = progress.pronunciationProgress,
                                         completedLessons = progress.completedLessons,
                                         totalLessons = progress.totalLessons,
-                                        unfinishedLessonProgressPct = lessonProgress?.progress ?: 0,
+                                        unitCompletedLessons = unitCompletedCount,
+                                        unitTotalLessons = unitTotal,
+                                        unfinishedLessonProgressPct = resolvedLessonProgress?.progress ?: 0,
                                         unfinishedSkillsCount = skillsDone,
                                         todayStudySeconds = todaySecs,
                                         todayStudyMinutes = todayMins,

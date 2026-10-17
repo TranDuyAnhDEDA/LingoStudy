@@ -134,7 +134,7 @@ fun GrammarScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (isScrolledToBottom) "Đã đọc xong · Làm bài kiểm tra" else "Cuộn xuống cuối để tiếp tục 📜",
+                                    text = if (isScrolledToBottom) "Đã đọc xong · Làm bài kiểm tra" else "Cuộn xuống cuối để tiếp tục",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White

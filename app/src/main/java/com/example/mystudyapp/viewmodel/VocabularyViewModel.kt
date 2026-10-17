@@ -22,12 +22,13 @@ data class VocabularyUiModel(
     val word: String,
     val meaning: String,
     val meaningVi: String? = null,
-    val partOfSpeech: String,
-    val example: String,
+    val partOfSpeech: String = "",
+    val example: String = "",
     val exampleVi: String? = null,
-    val translation: String,
+    val translation: String = "",
     val audioUrl: String? = null,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val phonetic: String = ""
 )
 
 data class VocabularyUiState(
@@ -36,6 +37,7 @@ data class VocabularyUiState(
     val errorMessage: String? = null,
     val lessonId: String = "",
     val lessonTitle: String = "",
+    val unitLabel: String = "UNIT 1",
     val vocabularyList: List<VocabularyUiModel> = emptyList(),
     val currentIndex: Int = 0,
     val completedCount: Int = 0,
@@ -86,6 +88,16 @@ class VocabularyViewModel(
                 val lessonResult = learningRepository.getLesson(lessonId).firstOrNull()
                 val lesson = lessonResult?.getOrNull()
 
+                val unitResult = if (lesson?.unitId.isNullOrBlank()) null else learningRepository.getUnit(lesson.unitId).firstOrNull()
+                val unit = unitResult?.getOrNull()
+                val unitLabel = if (unit != null) {
+                    if (unit.order > 0) "UNIT ${unit.order}" else unit.title.substringBefore(":").trim().ifBlank { "UNIT 1" }
+                } else {
+                    val uId = lesson?.unitId ?: ""
+                    val match = Regex("unit_.*_?(\\d+)").find(uId)
+                    if (match != null) "UNIT ${match.groupValues[1]}" else "UNIT 1"
+                }
+
                 val vocabResult = learningRepository.getVocabularyByLesson(lessonId).firstOrNull()
                 val vocabList = vocabResult?.getOrNull() ?: emptyList()
 
@@ -97,6 +109,7 @@ class VocabularyViewModel(
                         it.copy(
                             isLoading = false,
                             lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Từ vựng bài học",
+                            unitLabel = unitLabel,
                             vocabularyList = emptyList(),
                             errorMessage = null
                         )
@@ -105,6 +118,11 @@ class VocabularyViewModel(
                 }
 
                 val uiModels = vocabList.map { v ->
+                    val phonetic = if (!v.imageUrl.isNullOrBlank() && v.imageUrl.startsWith("/")) {
+                        v.imageUrl
+                    } else {
+                        "/${v.word.lowercase()}/"
+                    }
                     VocabularyUiModel(
                         id = v.id,
                         word = v.word,
@@ -115,7 +133,8 @@ class VocabularyViewModel(
                         exampleVi = v.exampleVi,
                         translation = v.translation,
                         audioUrl = v.audioUrl,
-                        imageUrl = v.imageUrl
+                        imageUrl = v.imageUrl,
+                        phonetic = phonetic
                     )
                 }
 
@@ -133,11 +152,38 @@ class VocabularyViewModel(
                     errorMessage = null,
                     lessonId = lessonId,
                     lessonTitle = lesson?.titleVi ?: lesson?.title ?: "Từ vựng bài học",
+                    unitLabel = unitLabel,
                     vocabularyList = uiModels,
                     currentIndex = startingIndex,
                     completedCount = if (isAlreadyFinished) uiModels.size else startingIndex,
                     isFinished = false
                 )
+            }
+        }
+    }
+
+    fun previousVocabulary() {
+        val currentState = _uiState.value
+        if (currentState.currentIndex > 0) {
+            val prevIndex = currentState.currentIndex - 1
+            _uiState.update {
+                it.copy(
+                    currentIndex = prevIndex
+                )
+            }
+            val currentUser = authRepository.getCurrentUser()
+            val uid = currentUser?.uid
+            if (uid != null) {
+                viewModelScope.launch {
+                    val updatedProgress = LessonProgress(
+                        lessonId = lessonId,
+                        progress = calculateLessonProgressPct(vocabularyCompleted = currentState.completedCount >= currentState.vocabularyList.size),
+                        completed = false,
+                        vocabularyCompleted = currentState.completedCount >= currentState.vocabularyList.size,
+                        lastVocabularyIndex = prevIndex
+                    )
+                    progressRepository.updateLessonProgress(uid, updatedProgress)
+                }
             }
         }
     }

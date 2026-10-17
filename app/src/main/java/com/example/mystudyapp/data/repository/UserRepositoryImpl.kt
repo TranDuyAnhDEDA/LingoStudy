@@ -65,6 +65,51 @@ class UserRepositoryImpl(
         }
     }
 
+    override suspend fun updateAvatar(uid: String, avatarId: String, customAvatarPath: String?): Result<Unit> {
+        return try {
+            val updates = mutableMapOf<String, Any?>(
+                "avatarId" to avatarId,
+                "customAvatarPath" to customAvatarPath,
+                "lastActiveAt" to FieldValue.serverTimestamp()
+            )
+            firestore.collection("users")
+                .document(uid)
+                .set(updates, SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(mapFirestoreException(e))
+        }
+    }
+
+    override suspend fun updateProfileDetails(
+        uid: String,
+        displayName: String,
+        phoneNumber: String,
+        dailyGoalMinutes: Int,
+        levelId: String,
+        levelName: String
+    ): Result<Unit> {
+        return try {
+            val updates = mutableMapOf<String, Any>(
+                "displayName" to displayName,
+                "phoneNumber" to phoneNumber,
+                "dailyGoalMinutes" to dailyGoalMinutes,
+                "lastActiveAt" to FieldValue.serverTimestamp()
+            )
+            if (levelId.isNotBlank()) updates["levelId"] = levelId
+            if (levelName.isNotBlank()) updates["levelName"] = levelName
+
+            firestore.collection("users")
+                .document(uid)
+                .set(updates, SetOptions.merge())
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(mapFirestoreException(e))
+        }
+    }
+
     override fun getCurrentUserProfile(): Flow<Result<UserProfile?>> {
         val currentUid = auth.currentUser?.uid
         if (currentUid.isNullOrBlank()) {

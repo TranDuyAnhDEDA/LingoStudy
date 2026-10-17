@@ -2,16 +2,14 @@ package com.example.mystudyapp.ui.screen.dictionary
 
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import android.speech.tts.TextToSpeech
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,58 +18,77 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.data.model.DictionaryResult
-import com.example.mystudyapp.data.model.EnglishMeaningGroup
-import com.example.mystudyapp.data.model.VietnameseMeaningGroup
-import com.example.mystudyapp.ui.component.MascotExpression
-import com.example.mystudyapp.ui.component.MascotView
 import com.example.mystudyapp.ui.component.shared.LingoBottomNav
-import com.example.mystudyapp.ui.theme.LingoBlue
-import com.example.mystudyapp.ui.theme.LingoGray
-import com.example.mystudyapp.ui.theme.LingoGreen
+import com.example.mystudyapp.viewmodel.DictionaryUiState
 import com.example.mystudyapp.viewmodel.DictionaryViewModel
 import com.example.mystudyapp.viewmodel.DictionaryViewModelFactory
+import com.example.mystudyapp.viewmodel.PopularWordItem
+import java.util.Locale
 
 @Composable
 fun DictionaryScreen(
@@ -80,9 +97,65 @@ fun DictionaryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+
+    // Preload default popular word "apple" so user immediately sees rich UI matching reference
+    LaunchedEffect(Unit) {
+        if (uiState.result == null && uiState.searchQuery.isEmpty()) {
+            viewModel.searchWord("apple")
+        }
+    }
+
+    // TextToSpeech Engine initialization with lifecycle management
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+    DisposableEffect(context) {
+        var ttsInstance: TextToSpeech? = null
+        ttsInstance = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                ttsInstance?.language = Locale.US
+            }
+        }
+        tts = ttsInstance
+        onDispose {
+            try {
+                ttsInstance?.stop()
+                ttsInstance?.shutdown()
+            } catch (e: Exception) {
+                // Ignore shutdown exceptions
+            }
+        }
+    }
+
+    // Audio pronounce handler using either remote URL or on-device TTS
+    val playPronounce: (String, String?) -> Unit = { word, audioUrl ->
+        if (!audioUrl.isNullOrBlank()) {
+            try {
+                val mp = MediaPlayer().apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .build()
+                    )
+                    setDataSource(audioUrl)
+                    setOnPreparedListener { it.start() }
+                    setOnCompletionListener { it.release() }
+                    setOnErrorListener { _, _, _ ->
+                        tts?.speak(word, TextToSpeech.QUEUE_FLUSH, null, "dict_tts")
+                        true
+                    }
+                    prepareAsync()
+                }
+            } catch (e: Exception) {
+                tts?.speak(word, TextToSpeech.QUEUE_FLUSH, null, "dict_tts")
+            }
+        } else {
+            tts?.speak(word, TextToSpeech.QUEUE_FLUSH, null, "dict_tts")
+        }
+    }
 
     Scaffold(
-        containerColor = Color(0xFFF8FAFF),
+        containerColor = Color.Transparent,
         bottomBar = {
             LingoBottomNav(
                 selectedIndex = 2,
@@ -97,176 +170,273 @@ fun DictionaryScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Dictionary Header
-            DictionaryHeader()
-
-            // Search Bar
-            SearchBarSection(
-                query = uiState.searchQuery,
-                isLoading = uiState.isLoading,
-                onQueryChange = { viewModel.onQueryChanged(it) },
-                onClear = { viewModel.clearQuery() },
-                onSearch = {
-                    keyboardController?.hide()
-                    viewModel.searchWord()
-                }
-            )
-
-            // Content Area
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = LingoBlue)
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = "Searching '${uiState.activeQuery}'...",
-                            fontSize = 14.sp,
-                            color = Color(0xFF1E3A8A),
-                            fontWeight = FontWeight.Medium
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFD6ECFD),
+                            Color(0xFFE8F4FE),
+                            Color(0xFFF6FAFD),
+                            Color(0xFFFFFFFF)
                         )
-                    }
-                }
-            } else if (uiState.errorMessage != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    ErrorResultCard(
-                        query = uiState.activeQuery,
-                        errorMessage = uiState.errorMessage ?: "Word not found."
+                    )
+                )
+        ) {
+            // Atmospheric soft floating clouds background
+            AtmosphericCloudsCanvas()
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // 1. Header (Back button, Title "Từ điển", Subtitle)
+                item {
+                    DictionaryTopHeader(
+                        onBack = { onNavigate("home") }
                     )
                 }
-            } else if (uiState.result == null) {
-                // Initial Intro State
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+
+                // 2. Search Bar
+                item {
+                    DictionarySearchBar(
+                        query = uiState.searchQuery,
+                        isLoading = uiState.isLoading,
+                        onQueryChange = { viewModel.onQueryChanged(it) },
+                        onClear = { viewModel.clearQuery() },
+                        onSearch = {
+                            keyboardController?.hide()
+                            viewModel.searchWord()
+                        }
+                    )
+                }
+
+                // 3. Section "Từ vựng phổ biến" (8 chips: apple, house, cat, dog, sun, tree, book, school)
+                item {
+                    PopularVocabularySection(
+                        items = uiState.popularWords,
+                        onWordClick = { word ->
+                            keyboardController?.hide()
+                            viewModel.onQueryChanged(word)
+                            viewModel.searchWord(word)
+                        }
+                    )
+                }
+
+                // 4. Loading State
+                if (uiState.isLoading) {
                     item {
-                        IntroCard(
-                            sampleWords = uiState.sampleWords,
-                            onSampleClick = { word ->
-                                viewModel.onQueryChanged(word)
-                                viewModel.searchWord(word)
+                        Surface(
+                            color = Color.White.copy(alpha = 0.95f),
+                            shape = RoundedCornerShape(26.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            shadowElevation = 2.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(28.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CircularProgressIndicator(
+                                    color = Color(0xFF2563EB),
+                                    strokeWidth = 3.dp,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    text = "Đang tra cứu từ \"${uiState.activeQuery}\"...",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E3A8A)
+                                )
                             }
+                        }
+                    }
+                }
+
+                // 5. Error State
+                else if (uiState.errorMessage != null) {
+                    item {
+                        Surface(
+                            color = Color(0xFFFFF1F2),
+                            shape = RoundedCornerShape(26.dp),
+                            border = BorderStroke(1.dp, Color(0xFFFECDD3)),
+                            shadowElevation = 1.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Không tìm thấy từ \"${uiState.activeQuery}\"",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFBE123C),
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = "Hãy kiểm tra lại chính tả hoặc chọn một từ phổ biến bên trên để tra cứu nhé!",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF475569),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 6. Search Result Card (Exact reference design 1)
+                val result = uiState.result
+                if (result != null && !uiState.isLoading) {
+                    item {
+                        SearchResultCard(
+                            result = result,
+                            isFavorite = uiState.isFavorite,
+                            onToggleFavorite = { viewModel.toggleFavorite() },
+                            onPlayPronounce = { playPronounce(result.word, result.audioUrl) }
                         )
                     }
                 }
-            } else {
-                // Result View
-                val result = uiState.result
-                if (result != null) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        item {
-                            WordHeaderCard(result = result)
-                        }
 
-                        if (result.vietnameseMeanings.isNotEmpty()) {
-                            item {
-                                VietnameseMeaningsSection(meanings = result.vietnameseMeanings)
-                            }
+                // 7. Section "Lịch sử tra cứu"
+                item {
+                    SearchHistorySection(
+                        history = uiState.searchHistory,
+                        onWordClick = { word ->
+                            keyboardController?.hide()
+                            viewModel.onQueryChanged(word)
+                            viewModel.searchWord(word)
+                        },
+                        onRemoveWord = { word ->
+                            viewModel.removeHistoryItem(word)
+                        },
+                        onViewAll = {
+                            viewModel.setShowAllHistoryDialog(true)
                         }
+                    )
+                }
 
-                        if (result.englishMeanings.isNotEmpty()) {
-                            item {
-                                EnglishMeaningsSection(meanings = result.englishMeanings)
-                            }
-                        }
-
-                        if (result.synonyms.isNotEmpty() || result.antonyms.isNotEmpty()) {
-                            item {
-                                RelationsSection(synonyms = result.synonyms, antonyms = result.antonyms)
-                            }
-                        }
-                    }
+                item {
+                    Spacer(Modifier.height(20.dp))
                 }
             }
         }
     }
+
+    // Full History Modal Dialog
+    if (uiState.showAllHistoryDialog) {
+        AllHistoryDialog(
+            history = uiState.searchHistory,
+            onDismiss = { viewModel.setShowAllHistoryDialog(false) },
+            onWordClick = { word ->
+                viewModel.setShowAllHistoryDialog(false)
+                keyboardController?.hide()
+                viewModel.onQueryChanged(word)
+                viewModel.searchWord(word)
+            },
+            onRemoveWord = { word ->
+                viewModel.removeHistoryItem(word)
+            },
+            onClearAll = {
+                viewModel.clearAllHistory()
+            }
+        )
+    }
+}
+
+// =============================================================================
+// SUB-COMPONENTS
+// =============================================================================
+
+@Composable
+private fun AtmosphericCloudsCanvas() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val w = size.width
+
+        // Soft cloud puff 1 (Top right)
+        drawCircle(
+            color = Color.White.copy(alpha = 0.35f),
+            radius = w * 0.32f,
+            center = Offset(w * 0.90f, 60.dp.toPx())
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.45f),
+            radius = w * 0.22f,
+            center = Offset(w * 0.76f, 100.dp.toPx())
+        )
+
+        // Soft cloud puff 2 (Middle left)
+        drawCircle(
+            color = Color.White.copy(alpha = 0.25f),
+            radius = w * 0.28f,
+            center = Offset(w * 0.05f, 280.dp.toPx())
+        )
+
+        // Soft cloud puff 3 (Lower right)
+        drawCircle(
+            color = Color.White.copy(alpha = 0.28f),
+            radius = w * 0.35f,
+            center = Offset(w * 0.95f, 480.dp.toPx())
+        )
+    }
 }
 
 @Composable
-private fun DictionaryHeader() {
-    Surface(
-        color = Color.White,
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+private fun DictionaryTopHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(top = 4.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Circular back button
+        Surface(
+            shape = CircleShape,
+            color = Color.White,
+            shadowElevation = 2.dp,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(42.dp)
+                .clickable { onBack() }
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Surface(
-                    color = Color(0xFFEFF6FF),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Translate,
-                            contentDescription = null,
-                            tint = LingoBlue,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "English - Vietnamese",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LingoBlue
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(6.dp))
-
-                Text(
-                    text = "Dictionary",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1E3A8A)
-                )
-
-                Text(
-                    text = "Discover new words every day",
-                    fontSize = 13.sp,
-                    color = LingoGray
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Quay lại",
+                    tint = Color(0xFF1E3A8A),
+                    modifier = Modifier.size(20.dp)
                 )
             }
+        }
 
-            MascotView(
-                modifier = Modifier.size(76.dp),
-                expression = MascotExpression.HAPPY,
-                enableAnimation = true
+        Spacer(Modifier.width(14.dp))
+
+        Column {
+            Text(
+                text = "Từ điển",
+                fontSize = 23.sp,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFF1E3A8A)
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "Tra cứu từ vựng nhanh chóng",
+                fontSize = 13.sp,
+                color = Color(0xFF64748B),
+                fontWeight = FontWeight.Medium
             )
         }
     }
 }
 
 @Composable
-private fun SearchBarSection(
+private fun DictionarySearchBar(
     query: String,
     isLoading: Boolean,
     onQueryChange: (String) -> Unit,
@@ -274,194 +444,132 @@ private fun SearchBarSection(
     onSearch: () -> Unit
 ) {
     Surface(
+        shape = RoundedCornerShape(26.dp),
         color = Color.White,
-        shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
+        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Search English word...", fontSize = 14.sp, color = LingoGray) },
-                singleLine = true,
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = LingoBlue,
-                    unfocusedBorderColor = Color(0xFFE2E8F0),
-                    focusedContainerColor = Color(0xFFF8FAFF),
-                    unfocusedContainerColor = Color(0xFFF8FAFF)
-                ),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = LingoBlue
-                    )
-                },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = onClear) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Clear",
-                                tint = LingoGray
-                            )
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearch() })
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = Color(0xFF94A3B8),
+                modifier = Modifier.size(20.dp)
             )
 
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
 
-            Button(
-                onClick = onSearch,
-                enabled = query.isNotBlank() && !isLoading,
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LingoBlue),
-                modifier = Modifier.height(52.dp)
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Text("Search", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                if (query.isEmpty()) {
+                    Text(
+                        text = "Nhập từ cần tìm...",
+                        fontSize = 15.sp,
+                        color = Color(0xFF94A3B8)
+                    )
+                }
+
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1E3A8A)
+                    ),
+                    cursorBrush = SolidColor(Color(0xFF2563EB)),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = Color(0xFF2563EB),
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(18.dp)
+                )
+            } else if (query.isNotEmpty()) {
+                IconButton(
+                    onClick = onClear,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Xóa",
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun IntroCard(
-    sampleWords: List<String>,
-    onSampleClick: (String) -> Unit
+private fun PopularVocabularySection(
+    items: List<PopularWordItem>,
+    onWordClick: (String) -> Unit
 ) {
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(24.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color(0xFFEFF6FF), Color.White)
-                    )
-                )
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            MascotView(
-                modifier = Modifier.size(120.dp),
-                expression = MascotExpression.HAPPY,
-                enableAnimation = true
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.LocalFireDepartment,
+                contentDescription = null,
+                tint = Color(0xFFEA580C),
+                modifier = Modifier.size(20.dp)
             )
-
-            Spacer(Modifier.height(16.dp))
-
+            Spacer(Modifier.width(6.dp))
             Text(
-                text = "Search an English word to discover its meaning",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E3A8A),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(6.dp))
-
-            Text(
-                text = "Get real-time Vietnamese translations, English definitions, audio pronunciations, and example sentences.",
-                fontSize = 13.sp,
-                color = Color(0xFF475569),
-                textAlign = TextAlign.Center,
-                lineHeight = 18.sp
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            Text(
-                text = "Try searching for:",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                text = "Từ vựng phổ biến",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF1E3A8A)
             )
-
-            Spacer(Modifier.height(10.dp))
-
-            FlowRow(
-                horizontalArrangement = Arrangement.Center,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                sampleWords.forEach { word ->
-                    Surface(
-                        color = Color(0xFFDBEAFE),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .clickable { onSampleClick(word) }
-                    ) {
-                        Text(
-                            text = "🔍 $word",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = LingoBlue,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-            }
         }
-    }
-}
 
-@Composable
-private fun WordHeaderCard(result: DictionaryResult) {
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(24.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Spacer(Modifier.height(10.dp))
+
+        // 2 rows of 4 columns
+        val row1 = items.take(4)
+        val row2 = items.drop(4).take(4)
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = result.word,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1E3A8A)
+                row1.forEach { item ->
+                    PopularWordChip(
+                        item = item,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onWordClick(item.word) }
                     )
-
-                    if (!result.ipa.isNullOrBlank()) {
-                        Spacer(Modifier.height(4.dp))
-                        Surface(
-                            color = Color(0xFFF1F5F9),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text(
-                                text = result.ipa,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF475569),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
                 }
+            }
 
-                if (!result.audioUrl.isNullOrBlank()) {
-                    AudioPlayerButton(audioUrl = result.audioUrl)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row2.forEach { item ->
+                    PopularWordChip(
+                        item = item,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onWordClick(item.word) }
+                    )
                 }
             }
         }
@@ -469,411 +577,532 @@ private fun WordHeaderCard(result: DictionaryResult) {
 }
 
 @Composable
-private fun AudioPlayerButton(audioUrl: String) {
-    var isPlaying by remember { mutableStateOf(false) }
-    var isBuffering by remember { mutableStateOf(false) }
-    val mediaPlayer = remember { MediaPlayer() }
-
-    DisposableEffect(audioUrl) {
-        onDispose {
-            try {
-                if (mediaPlayer.isPlaying) {
-                    mediaPlayer.stop()
-                }
-                mediaPlayer.release()
-            } catch (e: Exception) {
-                // Ignore release exception
-            }
-        }
-    }
-
+private fun PopularWordChip(
+    item: PopularWordItem,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Surface(
-        color = if (isPlaying) LingoGreen else LingoBlue,
-        shape = CircleShape,
-        modifier = Modifier
-            .size(48.dp)
-            .clickable(enabled = !isBuffering) {
-                try {
-                    if (isPlaying) {
-                        mediaPlayer.pause()
-                        isPlaying = false
-                    } else {
-                        isBuffering = true
-                        mediaPlayer.reset()
-                        mediaPlayer.setAudioAttributes(
-                            AudioAttributes
-                                .Builder()
-                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                .setUsage(AudioAttributes.USAGE_MEDIA)
-                                .build()
-                        )
-                        mediaPlayer.setDataSource(audioUrl)
-                        mediaPlayer.setOnPreparedListener { mp ->
-                            isBuffering = false
-                            isPlaying = true
-                            mp.start()
-                        }
-                        mediaPlayer.setOnCompletionListener {
-                            isPlaying = false
-                        }
-                        mediaPlayer.setOnErrorListener { _, _, _ ->
-                            isBuffering = false
-                            isPlaying = false
-                            true
-                        }
-                        mediaPlayer.prepareAsync()
-                    }
-                } catch (e: Exception) {
-                    isBuffering = false
-                    isPlaying = false
-                }
-            }
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(alpha = 0.95f),
+        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        modifier = modifier
+            .height(42.dp)
+            .clickable { onClick() }
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            if (isBuffering) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(20.dp)
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                    contentDescription = "Pronounce",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            DictionaryIllustration(
+                word = item.illustrationType,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.width(5.dp))
+            Text(
+                text = item.word,
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E3A8A),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
 
 @Composable
-private fun VietnameseMeaningsSection(meanings: List<VietnameseMeaningGroup>) {
-    var isExpanded by remember { mutableStateOf(true) }
-
+private fun SearchResultCard(
+    result: DictionaryResult,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    onPlayPronounce: () -> Unit
+) {
     Surface(
+        shape = RoundedCornerShape(26.dp),
         color = Color.White,
-        shape = RoundedCornerShape(22.dp),
-        shadowElevation = 2.dp,
+        shadowElevation = 3.dp,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
+            // Card Header: Badge & Star favorite button
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = Color(0xFFDCFCE7),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "VIETNAMESE",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF166534),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.width(10.dp))
-
+                Surface(
+                    color = Color(0xFFDBEAFE),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
                     Text(
-                        text = "Nghĩa tiếng Việt",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A8A)
+                        text = "Kết quả tra cứu",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF2563EB),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
 
-                IconButton(onClick = { isExpanded = !isExpanded }) {
+                IconButton(
+                    onClick = onToggleFavorite,
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = "Toggle",
-                        tint = LingoBlue
+                        imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = "Yêu thích",
+                        tint = if (isFavorite) Color(0xFFF59E0B) else Color(0xFF94A3B8),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
+            Spacer(Modifier.height(14.dp))
+
+            // Main Info: Illustration + Word Details
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Left Squircle Container
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = Color(0xFFEFF6FF),
+                    border = BorderStroke(1.dp, Color(0xFFDBEAFE)),
+                    modifier = Modifier.size(105.dp)
                 ) {
-                    meanings.forEach { group ->
+                    Box(contentAlignment = Alignment.Center) {
+                        DictionaryIllustration(
+                            word = result.word,
+                            modifier = Modifier.size(76.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(14.dp))
+
+                // Right Column Details
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = result.word,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF1E3A8A),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = Color(0xFF94A3B8),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(Modifier.weight(1f))
+
+                        // Audio button
                         Surface(
-                            color = Color(0xFFF8FAFF),
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.fillMaxWidth()
+                            shape = CircleShape,
+                            color = Color(0xFFDBEAFE),
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clickable { onPlayPronounce() }
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Surface(
-                                    color = Color(0xFFEFF6FF),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text(
-                                        text = group.partOfSpeech,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = LingoBlue,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                    )
-                                }
-
-                                Spacer(Modifier.height(6.dp))
-
-                                group.definitions.forEach { def ->
-                                    Text(
-                                        text = "• $def",
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF1E293B),
-                                        modifier = Modifier.padding(vertical = 2.dp),
-                                        lineHeight = 18.sp
-                                    )
-                                }
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                    contentDescription = "Phát âm",
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(19.dp)
+                                )
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-}
 
-@Composable
-private fun EnglishMeaningsSection(meanings: List<EnglishMeaningGroup>) {
-    var isExpanded by remember { mutableStateOf(true) }
+                    if (!result.ipa.isNullOrBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = result.ipa,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF64748B)
+                        )
+                    }
 
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(22.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(Modifier.height(5.dp))
+
+                    // Part of speech badge
                     Surface(
                         color = Color(0xFFEFF6FF),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = "ENGLISH",
+                            text = result.displayPartOfSpeech,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = LingoBlue,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2563EB),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp)
                         )
                     }
 
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.height(5.dp))
 
+                    // Primary Vietnamese meaning
                     Text(
-                        text = "English Definitions",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A8A)
-                    )
-                }
-
-                IconButton(onClick = { isExpanded = !isExpanded }) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = "Toggle",
-                        tint = LingoBlue
+                        text = result.displayMeaningVi,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF1E3A8A),
+                        lineHeight = 23.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column(
-                    modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            val exampleEn = result.displayExampleEn
+            val exampleVi = result.displayExampleVi
+
+            if (!exampleEn.isNullOrBlank()) {
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                Spacer(Modifier.height(12.dp))
+
+                // Example Section
+                Surface(
+                    color = Color(0xFFEFF6FF),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    meanings.forEach { group ->
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FormatQuote,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "Ví dụ:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2563EB)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(6.dp))
+
+                // Highlight searched word in example sentence
+                val targetWord = result.word.lowercase()
+                val exampleText = exampleEn
+                val lowerExample = exampleText.lowercase()
+                val wordIndex = lowerExample.indexOf(targetWord)
+
+                val annotated = buildAnnotatedString {
+                    if (wordIndex >= 0) {
+                        append(exampleText.substring(0, wordIndex))
+                        withStyle(style = SpanStyle(color = Color(0xFF2563EB), fontWeight = FontWeight.ExtraBold)) {
+                            append(exampleText.substring(wordIndex, wordIndex + targetWord.length))
+                        }
+                        append(exampleText.substring(wordIndex + targetWord.length))
+                    } else {
+                        append(exampleText)
+                    }
+                }
+
+                Text(
+                    text = annotated,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
+                )
+
+                if (!exampleVi.isNullOrBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = exampleVi,
+                        fontSize = 13.5.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Action Button: "Thêm vào yêu thích" / "Đã thêm vào yêu thích"
+            Button(
+                onClick = onToggleFavorite,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isFavorite) Color(0xFFDCFCE7) else Color(0xFFEFF6FF),
+                    contentColor = if (isFavorite) Color(0xFF15803D) else Color(0xFF2563EB)
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Check else Icons.AutoMirrored.Filled.MenuBook,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (isFavorite) "Đã thêm vào yêu thích" else "Thêm vào yêu thích",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchHistorySection(
+    history: List<String>,
+    onWordClick: (String) -> Unit,
+    onRemoveWord: (String) -> Unit,
+    onViewAll: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = Color(0xFF1E3A8A),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Lịch sử tra cứu",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E3A8A)
+                )
+            }
+
+            if (history.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onViewAll() }
+                ) {
+                    Text(
+                        text = "Xem tất cả",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2563EB)
+                    )
+                    Spacer(Modifier.width(2.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = Color(0xFF2563EB),
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        if (history.isEmpty()) {
+            Text(
+                text = "Chưa có lịch sử tra cứu nào.",
+                fontSize = 13.sp,
+                color = Color(0xFF94A3B8)
+            )
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(history.take(6)) { word ->
+                    HistoryChip(
+                        word = word,
+                        onClick = { onWordClick(word) },
+                        onRemove = { onRemoveWord(word) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryChip(
+    word: String,
+    onClick: () -> Unit,
+    onRemove: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable { onClick() }
+                .padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Schedule,
+                contentDescription = null,
+                tint = Color(0xFF94A3B8),
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = word,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E3A8A)
+            )
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable { onRemove() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Xóa",
+                    tint = Color(0xFF94A3B8),
+                    modifier = Modifier.size(13.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AllHistoryDialog(
+    history: List<String>,
+    onDismiss: () -> Unit,
+    onWordClick: (String) -> Unit,
+    onRemoveWord: (String) -> Unit,
+    onClearAll: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = Color(0xFF1E3A8A),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Lịch sử tra cứu",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E3A8A)
+                )
+            }
+        },
+        text = {
+            if (history.isEmpty()) {
+                Text(
+                    text = "Lịch sử tra cứu đang trống.",
+                    fontSize = 14.sp,
+                    color = Color(0xFF64748B)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(history) { word ->
                         Surface(
-                            color = Color(0xFFF8FAFF),
-                            shape = RoundedCornerShape(14.dp),
+                            color = Color(0xFFF8FAFC),
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Surface(
-                                    color = Color(0xFFDBEAFE),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onWordClick(word) }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Schedule,
+                                        contentDescription = null,
+                                        tint = Color(0xFF64748B),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
                                     Text(
-                                        text = group.partOfSpeech.uppercase(),
-                                        fontSize = 11.sp,
+                                        text = word,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = LingoBlue,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        color = Color(0xFF1E3A8A)
                                     )
                                 }
 
-                                Spacer(Modifier.height(6.dp))
-
-                                group.definitions.forEach { item ->
-                                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                        Text(
-                                            text = "• ${item.definition}",
-                                            fontSize = 14.sp,
-                                            color = Color(0xFF1E293B),
-                                            lineHeight = 18.sp
-                                        )
-                                        if (!item.example.isNullOrBlank()) {
-                                            Text(
-                                                text = "   Example: \"${item.example}\"",
-                                                fontSize = 12.sp,
-                                                color = Color(0xFF475569),
-                                                modifier = Modifier.padding(top = 2.dp)
-                                            )
-                                        }
-                                    }
+                                IconButton(
+                                    onClick = { onRemoveWord(word) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Xóa",
+                                        tint = Color(0xFF94A3B8),
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun RelationsSection(synonyms: List<String>, antonyms: List<String>) {
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(22.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            if (synonyms.isNotEmpty()) {
-                Text(
-                    text = "Synonyms (Đồng nghĩa)",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E3A8A)
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    synonyms.take(10).forEach { syn ->
-                        Surface(
-                            color = Color(0xFFEFF6FF),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = syn,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = LingoBlue,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
+        },
+        confirmButton = {
+            if (history.isNotEmpty()) {
+                TextButton(onClick = onClearAll) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = null,
+                        tint = Color(0xFFDC2626),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("Xóa tất cả", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
                 }
             }
-
-            if (synonyms.isNotEmpty() && antonyms.isNotEmpty()) {
-                Spacer(Modifier.height(14.dp))
-            }
-
-            if (antonyms.isNotEmpty()) {
-                Text(
-                    text = "Antonyms (Trái nghĩa)",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E3A8A)
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    antonyms.take(10).forEach { ant ->
-                        Surface(
-                            color = Color(0xFFFEF2F2),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = ant,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFFDC2626),
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Đóng", color = Color(0xFF2563EB), fontWeight = FontWeight.Bold)
             }
         }
-    }
-}
-
-@Composable
-private fun ErrorResultCard(query: String, errorMessage: String) {
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(24.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            MascotView(
-                modifier = Modifier.size(100.dp),
-                expression = MascotExpression.THINKING
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = "No definitions found for '$query'",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E3A8A),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(6.dp))
-
-            Text(
-                text = errorMessage,
-                fontSize = 13.sp,
-                color = LingoGray,
-                textAlign = TextAlign.Center,
-                lineHeight = 18.sp
-            )
-        }
-    }
+    )
 }

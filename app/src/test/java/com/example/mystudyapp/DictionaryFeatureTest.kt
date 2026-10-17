@@ -1,5 +1,6 @@
 package com.example.mystudyapp
 
+import com.example.mystudyapp.data.local.DictionaryLocalStore
 import com.example.mystudyapp.data.model.DictionaryResult
 import com.example.mystudyapp.data.network.DictionaryApiClient
 import com.example.mystudyapp.data.network.EnglishDataDTO
@@ -209,4 +210,118 @@ class DictionaryFeatureTest {
         assertEquals("", clearedState.searchQuery)
         assertNull(clearedState.result)
     }
+
+    @Test
+    fun testDictionaryLocalStoreOperations() {
+        val store = DictionaryLocalStore() // In-memory fallback mode
+        assertTrue(store.getSearchHistory().isEmpty())
+        assertTrue(store.getFavoriteWords().isEmpty())
+
+        // Add history
+        store.addSearchHistory("apple")
+        store.addSearchHistory("house")
+        store.addSearchHistory("cat")
+        assertEquals(listOf("cat", "house", "apple"), store.getSearchHistory())
+
+        // Re-adding existing moves to front
+        store.addSearchHistory("apple")
+        assertEquals(listOf("apple", "cat", "house"), store.getSearchHistory())
+
+        // Remove item
+        store.removeSearchHistory("cat")
+        assertEquals(listOf("apple", "house"), store.getSearchHistory())
+
+        // Clear history
+        store.clearSearchHistory()
+        assertTrue(store.getSearchHistory().isEmpty())
+
+        // Favorites toggle
+        assertFalse(store.isFavorite("apple"))
+        val added = store.toggleFavorite("apple")
+        assertTrue(added)
+        assertTrue(store.isFavorite("apple"))
+
+        val removed = store.toggleFavorite("apple")
+        assertFalse(removed)
+        assertFalse(store.isFavorite("apple"))
+    }
+
+    @Test
+    fun testCuratedDictionaryLookup() {
+        val fakeClient = object : DictionaryApiClient() {
+            override suspend fun lookupVietnameseDictionary(word: String): Result<VietnameseDataDTO> {
+                return Result.failure(Exception("Offline"))
+            }
+
+            override suspend fun lookupEnglishDictionary(word: String): Result<EnglishDataDTO> {
+                return Result.failure(Exception("Offline"))
+            }
+        }
+
+        val repository = DictionaryRepositoryImpl(apiClient = fakeClient, localStore = DictionaryLocalStore())
+
+        var result: DictionaryResult? = null
+        kotlinx.coroutines.test.runTest(testDispatcher) {
+            repository.lookupWord("apple").collect { res ->
+                result = res.getOrNull()
+            }
+        }
+
+        assertNotNull(result)
+        assertEquals("apple", result?.word)
+        assertEquals("/ˈæpəl/", result?.ipa)
+        assertEquals("quả táo", result?.displayMeaningVi)
+        assertEquals("danh từ", result?.displayPartOfSpeech)
+        assertEquals("I like apples.", result?.displayExampleEn)
+        assertEquals("Tôi thích táo.", result?.displayExampleVi)
+        assertTrue(repository.getSearchHistory().contains("apple"))
+    }
+
+    @Test
+    fun testDictionaryViewModelFavoritesAndHistory() {
+        val localStore = DictionaryLocalStore()
+        val fakeRepository = object : DictionaryRepository {
+            override fun lookupWord(word: String): Flow<Result<DictionaryResult>> {
+                return flowOf(Result.success(DictionaryResult(word = word, ipa = "/test/")))
+            }
+            override fun getSearchHistory() = localStore.getSearchHistory()
+            override fun addSearchHistory(word: String) = localStore.addSearchHistory(word)
+            override fun removeSearchHistory(word: String) = localStore.removeSearchHistory(word)
+            override fun clearSearchHistory() = localStore.clearSearchHistory()
+            override fun isFavorite(word: String) = localStore.isFavorite(word)
+            override fun toggleFavorite(word: String) = localStore.toggleFavorite(word)
+        }
+
+        val viewModel = DictionaryViewModel(repository = fakeRepository)
+
+        // Test search dialog state
+        assertFalse(viewModel.uiState.value.showAllHistoryDialog)
+        viewModel.setShowAllHistoryDialog(true)
+        assertTrue(viewModel.uiState.value.showAllHistoryDialog)
+        viewModel.setShowAllHistoryDialog(false)
+        assertFalse(viewModel.uiState.value.showAllHistoryDialog)
+
+        // Perform search
+        viewModel.searchWord("house")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Test favorite toggle
+        assertFalse(viewModel.uiState.value.isFavorite)
+        viewModel.toggleFavorite()
+        assertTrue(viewModel.uiState.value.isFavorite)
+        viewModel.toggleFavorite()
+        assertFalse(viewModel.uiState.value.isFavorite)
+
+        // Test remove history & clear
+        fakeRepository.addSearchHistory("dog")
+        viewModel.refreshLocalData()
+        assertTrue(viewModel.uiState.value.searchHistory.contains("dog"))
+
+        viewModel.removeHistoryItem("dog")
+        assertFalse(viewModel.uiState.value.searchHistory.contains("dog"))
+
+        viewModel.clearAllHistory()
+        assertTrue(viewModel.uiState.value.searchHistory.isEmpty())
+    }
 }
+

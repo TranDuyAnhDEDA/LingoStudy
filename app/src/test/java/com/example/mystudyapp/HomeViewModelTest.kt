@@ -81,7 +81,9 @@ class HomeViewModelTest {
             xp = 350,
             streak = 7,
             longestStreak = 10,
-            totalLessonsCompleted = 5
+            totalLessonsCompleted = 5,
+            avatarId = "girl_glasses",
+            customAvatarPath = "/data/user/0/com.example.mystudyapp/files/avatars/avatar_test.jpg"
         )
 
         val testProgress = UserProgress(
@@ -125,6 +127,67 @@ class HomeViewModelTest {
         assertEquals(50, state.pronunciationProgress)
         assertEquals(1, state.completedLessons)
         assertEquals(3, state.totalLessons)
+        assertEquals("girl_glasses", state.avatarId)
+        assertEquals("/data/user/0/com.example.mystudyapp/files/avatars/avatar_test.jpg", state.customAvatarPath)
+        assertEquals("unit_3_1", state.currentUnitId)
+        assertEquals("unit/unit_3_1", state.resumeRoute)
+    }
+
+    @Test
+    fun testCompletedLessonAdvancesToNextUnfinishedLessonInUnit() {
+        val testUser = AuthUser(uid = "test_uid_456", email = "test@example.com", displayName = "Test Learner")
+        val fakeAuthRepo = FakeAuthRepository(currentUser = testUser)
+
+        val testProfile = UserProfile(
+            uid = "test_uid_456",
+            displayName = "Test Learner",
+            xp = 100
+        )
+
+        // Stale progress document pointing to lesson_b1_1_1 even though it's already completed
+        val testProgress = UserProgress(
+            userId = "test_uid_456",
+            currentLessonId = "lesson_b1_1_1",
+            completedLessons = 1,
+            totalLessons = 3
+        )
+
+        val lesson1 = Lesson(id = "lesson_b1_1_1", unitId = "unit_b1_1", title = "Saying Hello", order = 1)
+        val lesson2 = Lesson(id = "lesson_b1_1_2", unitId = "unit_b1_1", title = "Introducing Yourself", order = 2)
+        val unit1 = Unit(id = "unit_b1_1", title = "Unit 1: Greetings", order = 1)
+
+        val progressRepo = object : FakeProgressRepository(progress = testProgress) {
+            override fun getLessonProgress(uid: String, lessonId: String): Flow<Result<LessonProgress?>> {
+                return if (lessonId == "lesson_b1_1_1") {
+                    flowOf(Result.success(LessonProgress(lessonId = lessonId, completed = true, progress = 100, xpEarned = 30)))
+                } else {
+                    flowOf(Result.success(null))
+                }
+            }
+        }
+
+        val learningRepo = object : FakeLearningRepository(lesson = lesson1) {
+            override fun getUnit(unitId: String): Flow<Result<Unit?>> = flowOf(Result.success(unit1))
+            override fun getLessonsByUnit(unitId: String): Flow<Result<List<Lesson>>> = flowOf(Result.success(listOf(lesson1, lesson2)))
+        }
+
+        val viewModel = HomeViewModel(
+            authRepository = fakeAuthRepo,
+            userRepository = FakeUserRepository(profile = testProfile),
+            progressRepository = progressRepo,
+            learningRepository = learningRepo
+        )
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals("unit_b1_1", state.currentUnitId)
+        assertEquals("unit/unit_b1_1", state.resumeRoute)
+        assertEquals("lesson_b1_1_2", state.currentLessonId)
+        assertEquals("Introducing Yourself", state.currentLessonTitle)
+        assertEquals(0, state.unfinishedLessonProgressPct)
+        assertEquals(1, state.unitCompletedLessons)
+        assertEquals(2, state.unitTotalLessons)
     }
 
     open class FakeAuthRepository(private val currentUser: AuthUser?) : AuthRepository {
@@ -144,7 +207,7 @@ class HomeViewModelTest {
         override fun getCurrentUserProfile(): Flow<Result<UserProfile?>> = flowOf(Result.success(profile))
     }
 
-    class FakeProgressRepository(private val progress: UserProgress? = null) : ProgressRepository {
+    open class FakeProgressRepository(private val progress: UserProgress? = null) : ProgressRepository {
         override fun getUserProgress(uid: String): Flow<Result<UserProgress?>> = flowOf(Result.success(progress))
         override suspend fun createUserProgress(progress: UserProgress): Result<kotlin.Unit> = Result.success(kotlin.Unit)
         override suspend fun updateUserProgress(progress: UserProgress): Result<kotlin.Unit> = Result.success(kotlin.Unit)
@@ -154,7 +217,7 @@ class HomeViewModelTest {
         override suspend fun completeLessonIfEligible(uid: String, lessonId: String): Result<Boolean> = Result.success(false)
     }
 
-    class FakeLearningRepository(
+    open class FakeLearningRepository(
         private val level: Level? = null,
         private val lesson: Lesson? = null
     ) : LearningRepository {

@@ -13,5 +13,9 @@ data class UserProfile(
     val longestStreak: Int = 0,
     val totalLessonsCompleted: Int = 0,
     val createdAt: Timestamp? = null,
-    val lastActiveAt: Timestamp? = null
+    val lastActiveAt: Timestamp? = null,
+    val avatarId: String = "boy_hoodie",
+    val customAvatarPath: String? = null,
+    val phoneNumber: String = "",
+    val dailyGoalMinutes: Int = 30
 )

@@ -1,12 +1,17 @@
-﻿package com.example.mystudyapp.ui.component.shared
+package com.example.mystudyapp.ui.component.shared
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Translate
@@ -28,10 +33,17 @@ import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.ui.theme.LingoGray
 
 @Composable
-fun LingoStatChip(emoji: String, value: String, label: String, modifier: Modifier = Modifier) {
+fun LingoStatChip(
+    icon: ImageVector,
+    iconTint: Color = LingoBlue,
+    containerColor: Color = Color(0xFFEFF6FF),
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier,
-        color = Color.White.copy(alpha = 0.9f),
+        color = Color.White.copy(alpha = 0.95f),
         shape = RoundedCornerShape(20.dp),
         shadowElevation = 2.dp,
         tonalElevation = 0.dp
@@ -39,14 +51,27 @@ fun LingoStatChip(emoji: String, value: String, label: String, modifier: Modifie
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(text = emoji, fontSize = 20.sp)
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Surface(
+                color = containerColor,
+                shape = CircleShape,
+                modifier = Modifier.size(30.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     text = value,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E3A8A),
                     lineHeight = 16.sp
                 )
@@ -66,10 +91,10 @@ data class NavItemData(val label: String, val icon: ImageVector)
 @Composable
 fun LingoBottomNav(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
     val navItems = listOf(
-        NavItemData("Home",       Icons.Default.Home),
-        NavItemData("Learn",      Icons.Default.AutoStories),
-        NavItemData("Dictionary", Icons.Default.Translate),
-        NavItemData("Me",         Icons.Default.Person)
+        NavItemData("Trang chủ", Icons.Default.Home),
+        NavItemData("Học tập",   Icons.AutoMirrored.Filled.MenuBook),
+        NavItemData("Từ điển",   Icons.Default.Translate),
+        NavItemData("Cá nhân",   Icons.Default.Person)
     )
 
     NavigationBar(

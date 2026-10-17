@@ -12,6 +12,7 @@ import com.example.mystudyapp.data.repository.LearningRepositoryImpl
 import com.example.mystudyapp.data.repository.ProgressRepository
 import com.example.mystudyapp.data.repository.ProgressRepositoryImpl
 import com.example.mystudyapp.data.seed.BeginnerCurriculumData
+import com.example.mystudyapp.data.seed.KidsCurriculumData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -85,7 +86,14 @@ class GrammarViewModel(
                 val lessonProgressResult = progressRepository.getLessonProgress(uid, lessonId).firstOrNull()
                 val lessonProgress = lessonProgressResult?.getOrNull()
 
-                val quickQuizzes = BeginnerCurriculumData.sampleGrammarQuickQuizzes
+                val kidsQuizzes = KidsCurriculumData.getQuickQuizzesByLesson(lessonId)
+                val quickQuizzes = if (kidsQuizzes.isNotEmpty()) {
+                    kidsQuizzes
+                } else {
+                    BeginnerCurriculumData.sampleGrammarQuickQuizzes.filter { it.lessonId == lessonId }.ifEmpty {
+                        BeginnerCurriculumData.sampleGrammarQuickQuizzes
+                    }
+                }
 
                 val uiModels = sortedGrammar.map { g ->
                     GrammarUiModel(

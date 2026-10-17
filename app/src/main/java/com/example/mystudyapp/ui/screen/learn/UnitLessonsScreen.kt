@@ -483,7 +483,9 @@ private fun UnitTopBar(
                     fontSize = 10.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF2563EB),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
             Spacer(Modifier.height(2.dp))
@@ -521,7 +523,9 @@ private fun UnitTopBar(
                     text = "$lessonsCount bài",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E3A8A)
+                    color = Color(0xFF1E3A8A),
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         }
@@ -634,7 +638,7 @@ private fun UnitCheckpointCard(unit: LearningUnit?) {
             }
         }
 
-        // Top-center badge: "★ UNIT 1 ★"
+        // Top-center badge: "UNIT 1"
         Surface(
             shape = RoundedCornerShape(14.dp),
             color = Color(0xFF3B82F6),
@@ -651,8 +655,6 @@ private fun UnitCheckpointCard(unit: LearningUnit?) {
                     .padding(horizontal = 16.dp, vertical = 5.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "★", fontSize = 10.sp, color = Color.White)
-                    Spacer(Modifier.width(6.dp))
                     Text(
                         text = "UNIT ${unit?.order ?: 1}",
                         fontSize = 11.sp,
@@ -660,8 +662,6 @@ private fun UnitCheckpointCard(unit: LearningUnit?) {
                         color = Color.White,
                         letterSpacing = 0.5.sp
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text(text = "★", fontSize = 10.sp, color = Color.White)
                 }
             }
         }
@@ -838,20 +838,20 @@ private fun LessonCandyNode(
         if (isUnlocked) {
             Surface(
                 shape = CircleShape,
-                color = if (isCompleted) Color(0xFFFEF08A) else Color.White,
+                color = if (isCompleted) Color(0xFFDCFCE7) else Color.White,
                 shadowElevation = 2.dp,
-                border = BorderStroke(1.dp, if (isCompleted) Color(0xFFF59E0B) else Color(0xFFE2E8F0)),
+                border = BorderStroke(1.dp, if (isCompleted) Color(0xFF86EFAC) else Color(0xFFE2E8F0)),
                 modifier = Modifier
                     .size(22.dp)
                     .align(Alignment.BottomEnd)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     if (isCompleted) {
-                        Text(
-                            text = "★",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFD97706)
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Hoàn thành",
+                            tint = Color(0xFF15803D),
+                            modifier = Modifier.size(12.dp)
                         )
                     } else {
                         Text(
@@ -1140,7 +1140,7 @@ private fun LessonDetailDialog(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = if (isCompleted) "Ôn tập lại bài học" else "Bắt đầu học (+${lesson.xpReward} XP)",
+                                text = if (isCompleted) "Ôn tập lại bài học (Đã nhận +${lesson.xpReward} XP)" else "Bắt đầu học (Hoàn thành nhận +${lesson.xpReward} XP)",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White

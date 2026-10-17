@@ -29,7 +29,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -225,6 +229,32 @@ fun QuizScreen(
                             )
                         }
 
+                        Spacer(Modifier.height(8.dp))
+
+                        Surface(
+                            color = Color(0xFFDCFCE7),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFF166534),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = "+30 XP hoàn thành bài học",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF166534)
+                                )
+                            }
+                        }
+
                         Spacer(Modifier.height(24.dp))
 
                         Row(
@@ -239,11 +269,20 @@ fun QuizScreen(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF27438), contentColor = Color.White)
                             ) {
-                                Text(
-                                    text = "Làm lại bài test 🔄",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "Làm lại bài test",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
 
                             Button(
@@ -318,8 +357,13 @@ fun QuizScreen(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(text = "⭐", fontSize = 12.sp)
-                                    Spacer(Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Quiz,
+                                        contentDescription = null,
+                                        tint = Color(0xFF2A8A5E),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(Modifier.width(5.dp))
                                     Text(
                                         text = "Câu ${uiState.currentIndex + 1} / ${uiState.quizList.size}",
                                         fontSize = 12.sp,
@@ -386,9 +430,9 @@ fun QuizScreen(
                             ) {
                                 Text(
                                     text = when {
-                                        uiState.isSubmitted && uiState.isCorrect -> "Tuyệt vời! +10 XP 🌟"
-                                        uiState.isSubmitted && !uiState.isCorrect -> "Cố lên bạn ơi! 💪"
-                                        else -> "Chọn câu trả lời đúng nhé! 🎯"
+                                        uiState.isSubmitted && uiState.isCorrect -> "Tuyệt vời! +10 XP"
+                                        uiState.isSubmitted && !uiState.isCorrect -> "Cố lên bạn ơi!"
+                                        else -> "Chọn câu trả lời đúng nhé!"
                                     },
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
@@ -411,9 +455,9 @@ fun QuizScreen(
                     val isLast = uiState.currentIndex >= uiState.quizList.size - 1
                     val buttonEnabled = uiState.selectedOption != null || uiState.isSubmitted
                     val buttonText = when {
-                        !uiState.isSubmitted -> "Kiểm tra đáp án →"
-                        isLast -> "Hoàn thành bài test 🎉"
-                        else -> "Câu tiếp theo →"
+                        !uiState.isSubmitted -> "Kiểm tra đáp án"
+                        isLast -> "Hoàn thành bài test"
+                        else -> "Câu tiếp theo"
                     }
 
                     Button(
@@ -437,9 +481,16 @@ fun QuizScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = buttonText,
-                                fontSize = 18.sp,
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Icon(
+                                imageVector = if (uiState.isSubmitted && isLast) Icons.Default.Check else Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -479,13 +530,24 @@ private fun QuizMainCard(
                         color = Color(0xFFE6F4EA),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(
-                            text = "⚡ BÀI KIỂM TRA TRẮC NGHIỆM",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF137333),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Quiz,
+                                contentDescription = null,
+                                tint = Color(0xFF137333),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(Modifier.width(5.dp))
+                            Text(
+                                text = "BÀI KIỂM TRA TRẮC NGHIỆM",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF137333)
+                            )
+                        }
                     }
 
                     Surface(
@@ -509,21 +571,14 @@ private fun QuizMainCard(
                 Spacer(Modifier.height(14.dp))
 
                 // Question Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = quiz.question,
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF0E4D2E),
-                        lineHeight = 26.sp,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(text = "👋", fontSize = 34.sp)
-                }
+                Text(
+                    text = quiz.question,
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF0E4D2E),
+                    lineHeight = 26.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
 
             // Options List (A, B, C, D)

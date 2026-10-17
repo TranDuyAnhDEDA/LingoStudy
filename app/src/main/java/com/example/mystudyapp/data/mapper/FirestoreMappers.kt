@@ -87,7 +87,11 @@ fun DocumentSnapshot.toUserProfile(): UserProfile? {
         longestStreak = getLong("longestStreak")?.toInt() ?: 0,
         totalLessonsCompleted = getLong("totalLessonsCompleted")?.toInt() ?: 0,
         createdAt = getTimestamp("createdAt"),
-        lastActiveAt = getTimestamp("lastActiveAt")
+        lastActiveAt = getTimestamp("lastActiveAt"),
+        avatarId = getString("avatarId") ?: "boy_hoodie",
+        customAvatarPath = getString("customAvatarPath"),
+        phoneNumber = getString("phoneNumber") ?: "",
+        dailyGoalMinutes = getLong("dailyGoalMinutes")?.toInt() ?: 30
     )
 }
 
@@ -101,7 +105,11 @@ fun UserProfile.toFirestoreMap(): Map<String, Any?> = mapOf(
     "longestStreak" to longestStreak,
     "totalLessonsCompleted" to totalLessonsCompleted,
     "createdAt" to (createdAt ?: FieldValue.serverTimestamp()),
-    "lastActiveAt" to FieldValue.serverTimestamp()
+    "lastActiveAt" to FieldValue.serverTimestamp(),
+    "avatarId" to avatarId,
+    "customAvatarPath" to customAvatarPath,
+    "phoneNumber" to phoneNumber,
+    "dailyGoalMinutes" to dailyGoalMinutes
 )
 
 @Suppress("UNCHECKED_CAST")

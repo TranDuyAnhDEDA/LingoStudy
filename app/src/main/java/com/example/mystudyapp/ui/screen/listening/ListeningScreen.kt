@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -186,7 +187,7 @@ fun ListeningScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (isLast) "Hoàn thành 10 bài nghe 🎉" else "Câu tiếp theo",
+                                    text = if (isLast) "Hoàn thành bài nghe" else "Câu tiếp theo",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -333,11 +334,19 @@ fun ListeningScreen(
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE2E8F0), contentColor = Color(0xFF334155))
                             ) {
-                                Text(
-                                    text = "Luyện lại từ đầu 🔄",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "Luyện lại từ đầu",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
 
                             Button(
@@ -443,7 +452,7 @@ private fun ListeningCard(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "Nhấn nút để nghe âm thanh 🔊",
+                text = "Nhấn nút để nghe âm thanh",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = LingoBlue

@@ -19,6 +19,7 @@ import com.example.mystudyapp.data.model.Quiz
 import com.example.mystudyapp.data.model.Unit
 import com.example.mystudyapp.data.model.Vocabulary
 import com.example.mystudyapp.data.seed.BeginnerCurriculumData
+import com.example.mystudyapp.data.seed.KidsCurriculumData
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -45,13 +46,13 @@ class LearningRepositoryImpl(
             id = "program_kids",
             title = "English for Kids",
             titleVi = "Tiếng Anh cho trẻ em",
-            description = "Fun, interactive lessons with playful songs, colorful stories, and foundational words for young learners.",
+            description = "A colorful, interactive 10-unit English journey designed for kids with playful vocabulary, simple grammar, and fun activities.",
             descriptionVi = "Học tiếng Anh qua trò chơi, bài hát, câu chuyện và những từ vựng gần gũi.",
             targetAudience = "Children & Young Learners",
             targetAudienceVi = "Trẻ em & Mầm non",
             iconEmoji = "🧸",
-            levelIds = emptyList(),
-            isAvailable = false
+            levelIds = listOf("level_kids_1"),
+            isAvailable = true
         ),
         LearningProgram(
             id = "program_adults",
@@ -84,18 +85,9 @@ class LearningRepositoryImpl(
             .map { result ->
                 result.map { levelsList ->
                     if (levelsList.isEmpty() && programId == "program_beginner") {
-                        listOf(
-                            Level(
-                                id = "level_beginner_1",
-                                programId = "program_beginner",
-                                name = "Beginner 1: Foundations & Communication",
-                                nameVi = "Beginner 1: Nền tảng & Giao tiếp",
-                                description = "Master everyday vocabulary, practical dialogues, and essential grammar across 10 structured units.",
-                                descriptionVi = "Thành thạo từ vựng hàng ngày, hội thoại thực tế và ngữ pháp thiết yếu qua 10 bài học.",
-                                order = 1,
-                                xpRequired = 900
-                            )
-                        )
+                        listOf(BeginnerCurriculumData.level)
+                    } else if (levelsList.isEmpty() && programId == "program_kids") {
+                        listOf(KidsCurriculumData.level)
                     } else {
                         levelsList.sortedBy { it.order }
                     }
@@ -114,6 +106,13 @@ class LearningRepositoryImpl(
         return firestore.collection("levels")
             .document(levelId)
             .asFlow { it.toLevel() }
+            .map { result ->
+                result.map { level ->
+                    level ?: if (levelId == "level_beginner_1") BeginnerCurriculumData.level
+                    else if (levelId == "level_kids_1") KidsCurriculumData.level
+                    else null
+                }
+            }
     }
 
     override fun getUnitsByLevel(levelId: String): Flow<Result<List<Unit>>> {
@@ -123,11 +122,8 @@ class LearningRepositoryImpl(
             .asFlow { it.toUnitModel() }
             .map { result ->
                 result.map { list ->
-                    if (list.isEmpty() && levelId == "level_beginner_1") {
-                        BeginnerCurriculumData.units
-                    } else {
-                        (list + BeginnerCurriculumData.units).distinctBy { it.id }.sortedBy { it.order }
-                    }
+                    val seedUnits = if (levelId == "level_kids_1") KidsCurriculumData.units else BeginnerCurriculumData.units
+                    (list + seedUnits).distinctBy { it.id }.sortedBy { it.order }
                 }
             }
     }
@@ -140,6 +136,7 @@ class LearningRepositoryImpl(
             .map { result ->
                 result.map { unit ->
                     unit ?: BeginnerCurriculumData.units.firstOrNull { it.id == unitId }
+                    ?: KidsCurriculumData.units.firstOrNull { it.id == unitId }
                 }
             }
     }
@@ -151,7 +148,7 @@ class LearningRepositoryImpl(
             .asFlow { it.toLesson() }
             .map { result ->
                 result.map { list ->
-                    val seedLessons = BeginnerCurriculumData.lessons.filter { it.unitId == unitId }
+                    val seedLessons = (BeginnerCurriculumData.lessons + KidsCurriculumData.lessons).filter { it.unitId == unitId }
                     (list + seedLessons).distinctBy { it.id }.sortedBy { it.order }
                 }
             }
@@ -165,6 +162,7 @@ class LearningRepositoryImpl(
             .map { result ->
                 result.map { lesson ->
                     lesson ?: BeginnerCurriculumData.lessons.firstOrNull { it.id == lessonId }
+                    ?: KidsCurriculumData.lessons.firstOrNull { it.id == lessonId }
                 }
             }
     }
@@ -176,7 +174,7 @@ class LearningRepositoryImpl(
             .asFlow { it.toVocabulary() }
             .map { result ->
                 result.map { list ->
-                    val seedVocabs = BeginnerCurriculumData.sampleVocabularies.filter { it.lessonId == lessonId }
+                    val seedVocabs = (BeginnerCurriculumData.sampleVocabularies + KidsCurriculumData.vocabularies).filter { it.lessonId == lessonId }
                     (list + seedVocabs).distinctBy { it.id }.sortedBy { it.order }
                 }
             }
@@ -189,7 +187,7 @@ class LearningRepositoryImpl(
             .asFlow { it.toGrammar() }
             .map { result ->
                 result.map { list ->
-                    val seedGrammars = BeginnerCurriculumData.sampleGrammars.filter { it.lessonId == lessonId }
+                    val seedGrammars = (BeginnerCurriculumData.sampleGrammars + KidsCurriculumData.grammars).filter { it.lessonId == lessonId }
                     (list + seedGrammars).distinctBy { it.id }.sortedBy { it.order }
                 }
             }
@@ -202,7 +200,7 @@ class LearningRepositoryImpl(
             .asFlow { it.toListening() }
             .map { result ->
                 result.map { list ->
-                    val seedListenings = BeginnerCurriculumData.sampleListenings.filter { it.lessonId == lessonId }
+                    val seedListenings = (BeginnerCurriculumData.sampleListenings + KidsCurriculumData.listenings).filter { it.lessonId == lessonId }
                     (list + seedListenings).distinctBy { it.id }.sortedBy { it.order }
                 }
             }
@@ -215,7 +213,7 @@ class LearningRepositoryImpl(
             .asFlow { it.toPronunciation() }
             .map { result ->
                 result.map { list ->
-                    val seedPronuns = BeginnerCurriculumData.samplePronunciations.filter { it.lessonId == lessonId }
+                    val seedPronuns = (BeginnerCurriculumData.samplePronunciations + KidsCurriculumData.pronunciations).filter { it.lessonId == lessonId }
                     (list + seedPronuns).distinctBy { it.id }.sortedBy { it.order }
                 }
             }
@@ -228,7 +226,7 @@ class LearningRepositoryImpl(
             .asFlow { it.toQuiz() }
             .map { result ->
                 result.map { list ->
-                    val seedQuizzes = BeginnerCurriculumData.sampleQuizzes.filter { it.lessonId == lessonId }
+                    val seedQuizzes = (BeginnerCurriculumData.sampleQuizzes + KidsCurriculumData.quizzes).filter { it.lessonId == lessonId }
                     (list + seedQuizzes).distinctBy { it.id }.sortedBy { it.order }
                 }
             }

@@ -12,6 +12,7 @@ import com.example.mystudyapp.data.mapper.toUserProfile
 import com.example.mystudyapp.data.model.DailyStudyTime
 import com.example.mystudyapp.data.model.LessonProgress
 import com.example.mystudyapp.data.model.UserProgress
+import com.example.mystudyapp.data.seed.BeginnerCurriculumData
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
@@ -136,6 +137,9 @@ class ProgressRepositoryImpl(
             }
 
             batch.commit().await()
+            if (isOverallCompleted && preservedXpEarned == 0) {
+                completeLessonIfEligible(uid, progress.lessonId)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(mapFirestoreException(e))
@@ -184,23 +188,28 @@ class ProgressRepositoryImpl(
             val progress = lessonProgressDoc.toLessonProgress()
                 ?: return Result.success(false)
 
-            val isEligible = progress.vocabularyCompleted &&
+            val isEligible = (progress.vocabularyCompleted &&
                     progress.grammarCompleted &&
                     progress.listeningCompleted &&
-                    progress.quizCompleted
+                    progress.quizCompleted) || progress.completed
 
             if (!isEligible) {
                 return Result.success(false)
             }
 
-            if (progress.xpEarned > 0 || progress.completed) {
+            // Only skip if XP was ALREADY awarded for this lesson (prevent duplicate rewards)
+            if (progress.xpEarned > 0) {
                 return Result.success(false)
             }
 
-            val lessonDoc = firestore.collection("lessons").document(lessonId).get().await()
-            val lesson = lessonDoc.toLesson()
+            val lessonDoc = try {
+                firestore.collection("lessons").document(lessonId).get().await()
+            } catch (e: Exception) {
+                null
+            }
+            val lesson = lessonDoc?.toLesson() ?: BeginnerCurriculumData.lessons.firstOrNull { it.id == lessonId }
             val xpReward = lesson?.xpReward ?: 30
-            val unitId = lesson?.unitId ?: ""
+            val unitId = lesson?.unitId ?: (BeginnerCurriculumData.lessons.firstOrNull { it.id == lessonId }?.unitId ?: "")
 
             val nextLessonId = findNextLessonId(unitId, lessonId) ?: lessonId
 
@@ -228,6 +237,7 @@ class ProgressRepositoryImpl(
                 mapOf(
                     "completedLessons" to FieldValue.increment(1),
                     "currentLessonId" to nextLessonId,
+                    "currentActivity" to FieldValue.delete(),
                     "vocabularyProgress" to 100,
                     "grammarProgress" to 100,
                     "listeningProgress" to 100,
@@ -258,43 +268,55 @@ class ProgressRepositoryImpl(
     private suspend fun findNextLessonId(unitId: String, currentLessonId: String): String? {
         if (unitId.isBlank()) return null
         return try {
-            val lessonsQuery = firestore.collection("lessons")
-                .whereEqualTo("unitId", unitId)
-                .get()
-                .await()
+            val firestoreLessons = try {
+                val lessonsQuery = firestore.collection("lessons")
+                    .whereEqualTo("unitId", unitId)
+                    .get()
+                    .await()
+                lessonsQuery.documents.mapNotNull { it.toLesson() }
+            } catch (e: Exception) {
+                emptyList()
+            }
 
-            val sortedLessons = lessonsQuery.documents
-                .mapNotNull { it.toLesson() }
-                .sortedBy { it.order }
+            val seedLessons = BeginnerCurriculumData.lessons.filter { it.unitId == unitId }
+            val sortedLessons = (firestoreLessons + seedLessons).distinctBy { it.id }.sortedBy { it.order }
 
             val currentIndex = sortedLessons.indexOfFirst { it.id == currentLessonId }
             if (currentIndex in 0 until sortedLessons.size - 1) {
                 return sortedLessons[currentIndex + 1].id
             }
 
-            val unitDoc = firestore.collection("units").document(unitId).get().await()
-            val levelId = unitDoc.getString("levelId") ?: "level_3"
+            val unitDoc = try { firestore.collection("units").document(unitId).get().await() } catch (e: Exception) { null }
+            val levelId = unitDoc?.getString("levelId") ?: (BeginnerCurriculumData.units.firstOrNull { it.id == unitId }?.levelId ?: "level_beginner_1")
 
-            val unitsQuery = firestore.collection("units")
-                .whereEqualTo("levelId", levelId)
-                .get()
-                .await()
+            val firestoreUnits = try {
+                val unitsQuery = firestore.collection("units")
+                    .whereEqualTo("levelId", levelId)
+                    .get()
+                    .await()
+                unitsQuery.documents.mapNotNull { it.toUnitModel() }
+            } catch (e: Exception) {
+                emptyList()
+            }
 
-            val sortedUnits = unitsQuery.documents
-                .mapNotNull { it.toUnitModel() }
-                .sortedBy { it.order }
+            val seedUnits = BeginnerCurriculumData.units.filter { it.levelId == levelId }
+            val sortedUnits = (firestoreUnits + seedUnits).distinctBy { it.id }.sortedBy { it.order }
 
             val currentUnitIndex = sortedUnits.indexOfFirst { it.id == unitId }
             if (currentUnitIndex in 0 until sortedUnits.size - 1) {
                 val nextUnitId = sortedUnits[currentUnitIndex + 1].id
-                val nextUnitLessonsQuery = firestore.collection("lessons")
-                    .whereEqualTo("unitId", nextUnitId)
-                    .get()
-                    .await()
+                val nextUnitFirestoreLessons = try {
+                    val nextUnitLessonsQuery = firestore.collection("lessons")
+                        .whereEqualTo("unitId", nextUnitId)
+                        .get()
+                        .await()
+                    nextUnitLessonsQuery.documents.mapNotNull { it.toLesson() }
+                } catch (e: Exception) {
+                    emptyList()
+                }
 
-                val nextUnitSortedLessons = nextUnitLessonsQuery.documents
-                    .mapNotNull { it.toLesson() }
-                    .sortedBy { it.order }
+                val nextUnitSeedLessons = BeginnerCurriculumData.lessons.filter { it.unitId == nextUnitId }
+                val nextUnitSortedLessons = (nextUnitFirestoreLessons + nextUnitSeedLessons).distinctBy { it.id }.sortedBy { it.order }
 
                 return nextUnitSortedLessons.firstOrNull()?.id
             }
@@ -316,11 +338,26 @@ class ProgressRepositoryImpl(
         }
         return try {
             val userProgressRef = firestore.collection("user_progress").document(uid)
+            val lessonProgressDoc = try {
+                firestore.collection("user_progress")
+                    .document(uid)
+                    .collection("lessons")
+                    .document(lessonId)
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                null
+            }
+            val isLessonCompleted = lessonProgressDoc?.getBoolean("completed") ?: false
+
             val updates = mutableMapOf<String, Any>(
-                "currentLessonId" to lessonId,
                 "lastActivityIndex" to index,
                 "lastActiveAt" to FieldValue.serverTimestamp()
             )
+            // Do not regress currentLessonId if this lesson was already completed
+            if (!isLessonCompleted) {
+                updates["currentLessonId"] = lessonId
+            }
             if (activity != null) {
                 updates["currentActivity"] = activity
             }
@@ -399,6 +436,22 @@ class ProgressRepositoryImpl(
             .map { result ->
                 result.map { list ->
                     list.sumOf { it.totalSeconds }
+                }
+            }
+    }
+
+    override fun getLearningHistory(uid: String): Flow<Result<List<LessonProgress>>> {
+        if (uid.isBlank()) return flowOf(Result.success(emptyList()))
+        return firestore.collection("user_progress")
+            .document(uid)
+            .collection("lessons")
+            .asFlow { it.toLessonProgress() }
+            .map { result ->
+                result.map { list ->
+                    list.sortedWith(
+                        compareByDescending<LessonProgress> { it.completed }
+                            .thenByDescending { it.lastAccessedAt?.toDate() }
+                    )
                 }
             }
     }

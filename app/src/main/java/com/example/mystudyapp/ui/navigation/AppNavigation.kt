@@ -1,4 +1,4 @@
-﻿package com.example.mystudyapp.ui.navigation
+package com.example.mystudyapp.ui.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mystudyapp.data.model.AuthState
+import com.example.mystudyapp.ui.component.AppUsageTimeTracker
 import com.example.mystudyapp.ui.screen.auth.LoginScreen
 import com.example.mystudyapp.ui.screen.auth.RegisterScreen
 import com.example.mystudyapp.ui.screen.dictionary.DictionaryScreen
@@ -90,6 +91,7 @@ fun AppNavigation(
         }
 
         is AuthState.Authenticated -> {
+            AppUsageTimeTracker()
             NavHost(navController = navController, startDestination = "home") {
                 composable("home") {
                     HomeScreen(onNavigate = safeNavigate)

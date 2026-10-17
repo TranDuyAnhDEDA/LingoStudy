@@ -1,5 +1,6 @@
 package com.example.mystudyapp.ui.screen.lesson
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,6 +8,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,7 +29,9 @@ import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,6 +50,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,6 +82,19 @@ fun LessonScreen(
     viewModel: LessonViewModel = viewModel(factory = LessonViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadLessonData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     ActiveStudyTimeTracker(lessonId = lessonId)
 
@@ -110,9 +131,12 @@ fun LessonScreen(
 
                     Text(
                         text = uiState.title.ifBlank { "Chi tiết bài học" },
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A8A)
+                        color = Color(0xFF1E3A8A),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -133,6 +157,15 @@ fun LessonScreen(
                             else -> onNavigateToVocabulary
                         }
 
+                        val buttonText = when {
+                            uiState.isCompleted -> "Ôn tập bài học"
+                            !uiState.vocabularyCompleted -> "Bắt đầu học: Từ vựng"
+                            !uiState.grammarCompleted -> "Tiếp tục học: Ngữ pháp"
+                            !uiState.listeningCompleted -> "Tiếp tục học: Luyện nghe"
+                            !uiState.quizCompleted -> "Làm bài kiểm tra (+${uiState.xpReward} XP)"
+                            else -> "Ôn tập bài học"
+                        }
+
                         Button(
                             onClick = { nextAction() },
                             modifier = Modifier
@@ -145,7 +178,7 @@ fun LessonScreen(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (uiState.isCompleted) "Ôn tập bài học" else "Bắt đầu bài học",
+                                    text = buttonText,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -274,8 +307,45 @@ fun LessonScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                InfoChip(emoji = "⏱️", text = "${uiState.estimatedMinutes} phút")
-                                InfoChip(emoji = "⭐", text = "+${uiState.xpReward} XP")
+                                InfoChip(
+                                    icon = Icons.Default.Schedule,
+                                    iconTint = Color(0xFF2563EB),
+                                    text = "${uiState.estimatedMinutes} phút"
+                                )
+                                InfoChip(
+                                    icon = Icons.Default.Star,
+                                    iconTint = Color(0xFFD97706),
+                                    text = if (uiState.isCompleted) "+${uiState.xpReward} XP (Đã nhận)" else "+${uiState.xpReward} XP khi hoàn thành"
+                                )
+                            }
+
+                            if (uiState.isCompleted) {
+                                Spacer(Modifier.height(14.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = Color(0xFFDCFCE7),
+                                    border = BorderStroke(1.dp, Color(0xFF86EFAC)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color(0xFF166534),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = "Chúc mừng! Bạn đã hoàn thành bài học này và nhận +${uiState.xpReward} XP!",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF166534)
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(Modifier.height(16.dp))
@@ -386,7 +456,11 @@ fun LessonScreen(
 }
 
 @Composable
-private fun InfoChip(emoji: String, text: String) {
+private fun InfoChip(
+    icon: ImageVector,
+    iconTint: Color,
+    text: String
+) {
     Surface(
         color = Color(0xFFF8FAFF),
         shape = RoundedCornerShape(12.dp)
@@ -395,7 +469,12 @@ private fun InfoChip(emoji: String, text: String) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = emoji, fontSize = 14.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(15.dp)
+            )
             Spacer(Modifier.width(6.dp))
             Text(
                 text = text,

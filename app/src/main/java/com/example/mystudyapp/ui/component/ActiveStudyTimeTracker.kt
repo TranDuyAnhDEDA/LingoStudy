@@ -3,9 +3,9 @@ package com.example.mystudyapp.ui.component
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.mystudyapp.data.repository.AuthRepository
 import com.example.mystudyapp.data.repository.AuthRepositoryImpl
 import com.example.mystudyapp.data.repository.ProgressRepository
@@ -22,27 +22,25 @@ import java.util.Locale
 
 private val trackerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+/**
+ * Tracks the user's active usage time across the entire application (thời gian truy cập app).
+ * Runs globally as long as the user is authenticated and the app is in the foreground.
+ * Automatically pauses and flushes on lifecycle backgrounding (ON_PAUSE).
+ */
 @Composable
-fun ActiveStudyTimeTracker(
-    lessonId: String,
-    activityName: String? = null,
+fun AppUsageTimeTracker(
     authRepository: AuthRepository = AuthRepositoryImpl(),
     progressRepository: ProgressRepository = ProgressRepositoryImpl()
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(lessonId, activityName) {
-        val uid = authRepository.getCurrentUser()?.uid ?: return@LaunchedEffect
-        progressRepository.updateCurrentLearningPosition(uid, lessonId, activityName)
-    }
-
-    DisposableEffect(lifecycleOwner, lessonId, activityName) {
+    DisposableEffect(lifecycleOwner) {
         var activeSeconds = 0L
         var isSessionActive = true
 
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-        suspend fun flushStudyTime() {
+        suspend fun flushUsageTime() {
             if (activeSeconds <= 0) return
             val uid = authRepository.getCurrentUser()?.uid ?: return
             val secondsToSave = activeSeconds
@@ -61,7 +59,7 @@ fun ActiveStudyTimeTracker(
                 Lifecycle.Event.ON_PAUSE -> {
                     isSessionActive = false
                     trackerScope.launch {
-                        flushStudyTime()
+                        flushUsageTime()
                     }
                 }
                 else -> {}
@@ -75,9 +73,9 @@ fun ActiveStudyTimeTracker(
                 delay(1000)
                 if (isSessionActive) {
                     activeSeconds++
-                    // Flush every 5 seconds for live real-time study time updates!
+                    // Flush every 5 seconds for live real-time updates across screens!
                     if (activeSeconds >= 5) {
-                        flushStudyTime()
+                        flushUsageTime()
                     }
                 }
             }
@@ -88,8 +86,24 @@ fun ActiveStudyTimeTracker(
             timerJob.cancel()
             lifecycleOwner.lifecycle.removeObserver(observer)
             trackerScope.launch {
-                flushStudyTime()
+                flushUsageTime()
             }
         }
+    }
+}
+
+/**
+ * Updates learning position (currentLessonId, activityName) for resume functionality.
+ */
+@Composable
+fun ActiveStudyTimeTracker(
+    lessonId: String,
+    activityName: String? = null,
+    authRepository: AuthRepository = AuthRepositoryImpl(),
+    progressRepository: ProgressRepository = ProgressRepositoryImpl()
+) {
+    LaunchedEffect(lessonId, activityName) {
+        val uid = authRepository.getCurrentUser()?.uid ?: return@LaunchedEffect
+        progressRepository.updateCurrentLearningPosition(uid, lessonId, activityName)
     }
 }

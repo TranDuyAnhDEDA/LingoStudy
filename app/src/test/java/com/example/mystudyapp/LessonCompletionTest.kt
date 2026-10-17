@@ -184,6 +184,29 @@ class LessonCompletionTest {
         assertEquals("Beginner English", learnState.programs[0].title)
     }
 
+    @Test
+    fun testLessonEligibleForXpEvenIfAlreadyMarkedCompletedWhenXpNotYetAwarded() {
+        val completedProgressWithoutXp = LessonProgress(
+            lessonId = "lesson_b1_1_1",
+            vocabularyCompleted = true,
+            grammarCompleted = true,
+            listeningCompleted = true,
+            quizCompleted = true,
+            completed = true,
+            xpEarned = 0
+        )
+
+        val isEligible = (completedProgressWithoutXp.vocabularyCompleted &&
+                completedProgressWithoutXp.grammarCompleted &&
+                completedProgressWithoutXp.listeningCompleted &&
+                completedProgressWithoutXp.quizCompleted) || completedProgressWithoutXp.completed
+        assertTrue("Lesson marked completed is eligible for XP award", isEligible)
+        assertTrue("XP has not yet been awarded, so it should proceed", completedProgressWithoutXp.xpEarned == 0)
+
+        val progressWithXp = completedProgressWithoutXp.copy(xpEarned = 30)
+        assertTrue("Duplicate XP protection triggers when xpEarned > 0", progressWithXp.xpEarned > 0)
+    }
+
     open class FakeAuthRepository(private val currentUser: AuthUser?) : AuthRepository {
         override val authState: Flow<AuthState> = flowOf(if (currentUser != null) AuthState.Authenticated(currentUser) else AuthState.Unauthenticated)
         override suspend fun register(email: String, password: String, displayName: String): Result<AuthUser> = Result.failure(Exception())

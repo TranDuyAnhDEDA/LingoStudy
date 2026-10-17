@@ -159,7 +159,9 @@ fun LevelUnitsScreen(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = Color(0xFF065F46),
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
 
@@ -304,7 +306,9 @@ fun LevelUnitsScreen(
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.ExtraBold,
                                                     color = Color(0xFF1E3A8A),
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                    maxLines = 1,
+                                                    softWrap = false
                                                 )
                                             }
 

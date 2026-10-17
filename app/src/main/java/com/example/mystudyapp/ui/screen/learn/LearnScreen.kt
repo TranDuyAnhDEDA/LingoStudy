@@ -26,8 +26,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.Button
@@ -230,8 +232,13 @@ private fun LearnHeaderSection() {
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = "📖", fontSize = 12.sp)
-                        Spacer(Modifier.width(5.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            tint = Color(0xFF2563EB),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             text = "LỘ TRÌNH HỌC TẬP",
                             fontSize = 10.5.sp,
@@ -269,7 +276,12 @@ private fun LearnHeaderSection() {
 private fun LearnSectionHeader() {
     Column(modifier = Modifier.padding(horizontal = 18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "🎓", fontSize = 22.sp)
+            Icon(
+                imageVector = Icons.Default.School,
+                contentDescription = null,
+                tint = Color(0xFF2563EB),
+                modifier = Modifier.size(22.dp)
+            )
             Spacer(Modifier.width(8.dp))
             Text(
                 text = "Các chương trình học",
@@ -459,10 +471,11 @@ private fun StatusBadge(isAvailable: Boolean) {
             modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = if (isAvailable) "●" else "🕒",
-                fontSize = 10.sp,
-                color = if (isAvailable) Color(0xFF15803D) else Color(0xFFB45309)
+            Icon(
+                imageVector = if (isAvailable) Icons.Default.CheckCircle else Icons.Default.Schedule,
+                contentDescription = null,
+                tint = if (isAvailable) Color(0xFF15803D) else Color(0xFFB45309),
+                modifier = Modifier.size(12.dp)
             )
             Spacer(Modifier.width(5.dp))
             Text(

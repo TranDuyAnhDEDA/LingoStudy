@@ -19,6 +19,7 @@ import com.example.mystudyapp.data.repository.AuthRepository
 import com.example.mystudyapp.data.repository.LearningRepository
 import com.example.mystudyapp.data.repository.ProgressRepository
 import com.example.mystudyapp.data.repository.UserRepository
+import com.example.mystudyapp.ui.screen.profile.AVAILABLE_AVATARS
 import com.example.mystudyapp.viewmodel.ProfileViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -156,6 +157,85 @@ class ProfileFeatureTest {
         assertEquals("Alex Pro", fakeUserRepo.lastUpdatedName)
     }
 
+    @Test
+    fun testUpdateAvatarInProfile() {
+        val testUser = AuthUser(uid = "user_123", email = "alex@example.com", displayName = "Alex Learner")
+        val fakeAuth = FakeAuthRepo(testUser)
+        val fakeUserRepo = FakeUserRepo()
+
+        val viewModel = ProfileViewModel(
+            authRepository = fakeAuth,
+            userRepository = fakeUserRepo,
+            progressRepository = FakeProgressRepo(),
+            learningRepository = FakeLearningRepo()
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateAvatar("girl_glasses", "/data/user/0/com.example.mystudyapp/files/avatars/avatar_custom.jpg")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("girl_glasses", viewModel.uiState.value.profile?.avatarId)
+        assertEquals("/data/user/0/com.example.mystudyapp/files/avatars/avatar_custom.jpg", viewModel.uiState.value.profile?.customAvatarPath)
+        assertEquals("girl_glasses", fakeUserRepo.lastUpdatedAvatar)
+        assertEquals("/data/user/0/com.example.mystudyapp/files/avatars/avatar_custom.jpg", fakeUserRepo.lastUpdatedCustomAvatar)
+    }
+
+    @Test
+    fun testUpdateProfileDetails() {
+        val testUser = AuthUser(uid = "user_123", email = "alex@example.com", displayName = "Alex Learner")
+        val fakeAuth = FakeAuthRepo(testUser)
+        val fakeUserRepo = FakeUserRepo()
+
+        val viewModel = ProfileViewModel(
+            authRepository = fakeAuth,
+            userRepository = fakeUserRepo,
+            progressRepository = FakeProgressRepo(),
+            learningRepository = FakeLearningRepo()
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.updateProfileDetails(
+            newName = "Minh Anh Mới",
+            newPhone = "0987654321",
+            newGoalMinutes = 45,
+            newLevelName = "Beginner 2: Mở rộng vốn từ"
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals("Minh Anh Mới", state.profile?.displayName)
+        assertEquals("0987654321", state.profile?.phoneNumber)
+        assertEquals(45, state.profile?.dailyGoalMinutes)
+        assertEquals("Beginner 2: Mở rộng vốn từ", state.currentLevelName)
+        assertEquals("Minh Anh Mới", fakeUserRepo.lastUpdatedName)
+    }
+
+    @Test
+    fun testLearningHistoryInProfile() {
+        val testUser = AuthUser(uid = "user_123", email = "alex@example.com", displayName = "Alex Learner")
+        val fakeAuth = FakeAuthRepo(testUser)
+
+        val viewModel = ProfileViewModel(
+            authRepository = fakeAuth,
+            userRepository = FakeUserRepo(),
+            progressRepository = FakeProgressRepo(),
+            learningRepository = FakeLearningRepo()
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val history = viewModel.uiState.value.learningHistory
+        assertNotNull(history)
+        assertTrue(history.isNotEmpty())
+        assertTrue(history.any { it.isCompleted })
+    }
+
+    @Test
+    fun testAvatarOptionsAvailable() {
+        assertTrue(AVAILABLE_AVATARS.isNotEmpty())
+        assertTrue(AVAILABLE_AVATARS.any { it.id == "boy_hoodie" })
+        assertTrue(AVAILABLE_AVATARS.any { it.id == "girl_glasses" })
+    }
+
     class FakeAuthRepo(private val user: AuthUser?) : AuthRepository {
         override val authState: Flow<AuthState> = flowOf(if (user != null) AuthState.Authenticated(user) else AuthState.Unauthenticated)
         override suspend fun register(email: String, password: String, displayName: String) = Result.failure<AuthUser>(Exception())
@@ -167,11 +247,29 @@ class ProfileFeatureTest {
 
     class FakeUserRepo(private val profile: UserProfile? = null) : UserRepository {
         var lastUpdatedName: String? = null
+        var lastUpdatedAvatar: String? = null
+        var lastUpdatedCustomAvatar: String? = null
 
         override fun getUserProfile(uid: String) = flowOf(Result.success(profile))
         override suspend fun createUserProfile(user: UserProfile) = Result.success(kotlin.Unit)
         override suspend fun updateUserProfile(user: UserProfile) = Result.success(kotlin.Unit)
         override suspend fun updateDisplayName(uid: String, displayName: String): Result<kotlin.Unit> {
+            lastUpdatedName = displayName
+            return Result.success(kotlin.Unit)
+        }
+        override suspend fun updateAvatar(uid: String, avatarId: String, customAvatarPath: String?): Result<kotlin.Unit> {
+            lastUpdatedAvatar = avatarId
+            lastUpdatedCustomAvatar = customAvatarPath
+            return Result.success(kotlin.Unit)
+        }
+        override suspend fun updateProfileDetails(
+            uid: String,
+            displayName: String,
+            phoneNumber: String,
+            dailyGoalMinutes: Int,
+            levelId: String,
+            levelName: String
+        ): Result<kotlin.Unit> {
             lastUpdatedName = displayName
             return Result.success(kotlin.Unit)
         }
