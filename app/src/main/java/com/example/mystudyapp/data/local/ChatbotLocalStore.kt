@@ -8,7 +8,7 @@ class ChatbotLocalStore(
     private val defaultApiKey: String? = DEFAULT_API_KEY
 ) {
     companion object {
-        const val DEFAULT_API_KEY = "AIzaSyCE1LrQuRrUUXdPfq-U73z6ri6RVI7gcx4"
+        const val DEFAULT_API_KEY = "AIzaSyD91I7kDPOwiITcgbq5k5RUCkBpU3riWYk"
     }
 
     private val prefs: SharedPreferences? = try {
