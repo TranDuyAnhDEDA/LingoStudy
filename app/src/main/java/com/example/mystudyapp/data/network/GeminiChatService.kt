@@ -255,7 +255,11 @@ open class GeminiChatService(
                 "🦜 Để tra từ, bạn có thể gõ trực tiếp từ tiếng Anh cần tra vào đây (ví dụ: 'resilient là gì' hoặc 'cách dùng từ appreciate'). Vẹt sẽ chỉ bạn phiên âm chuẩn, từ loại, nghĩa tiếng Việt và cách ứng dụng vào câu giao tiếp nhé!"
             }
             else -> {
-                "🦜 Vẹt hiểu câu hỏi của bạn! Vẹt luôn sẵn sàng hỗ trợ bạn học tập. Bạn có thể hỏi Vẹt bất kỳ từ vựng, ngữ pháp hay lời khuyên học tập nào nhé!"
+                if (!errorReason.isNullOrBlank()) {
+                    "🦜 Vẹt tạm thời không kết nối được với Gemini AI ($errorReason). Bạn hãy kiểm tra lại kết nối mạng hoặc mã Gemini API Key nhé!"
+                } else {
+                    "🦜 Vẹt hiểu câu hỏi của bạn! Vẹt luôn sẵn sàng hỗ trợ bạn học tập. Bạn có thể hỏi Vẹt bất kỳ từ vựng, ngữ pháp hay lời khuyên học tập nào nhé!"
+                }
             }
         }
     }
