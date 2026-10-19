@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mystudyapp.data.local.DictionaryLocalStore
+import com.example.mystudyapp.data.model.UserLevelCalculator
 import com.example.mystudyapp.data.model.UserProfile
 import com.example.mystudyapp.data.model.UserProgress
 import com.example.mystudyapp.data.repository.AuthRepository
@@ -31,7 +32,9 @@ import java.util.Locale
 data class DailyChartBar(
     val dayLabel: String,
     val dateString: String,
-    val minutes: Int
+    val minutes: Int,
+    val isToday: Boolean = false,
+    val dateDisplay: String = ""
 )
 
 data class LearningHistoryItem(
@@ -58,7 +61,9 @@ data class ProfileUiState(
     val isUpdatingName: Boolean = false,
     val currentLevelName: String = "Beginner 1: Nền tảng & Giao tiếp",
     val currentXp: Int = 30,
-    val requiredXp: Int = 900,
+    val currentLevelXp: Int = 30,
+    val requiredXp: Int = 200,
+    val nextLevelThresholdXp: Int = 200,
     val vocabMasteryPct: Int = 0,
     val grammarMasteryPct: Int = 0,
     val listeningMasteryPct: Int = 0,
@@ -164,22 +169,55 @@ class ProfileViewModel(
                             ?: levelsList.firstOrNull { effectiveProfile.xp < it.xpRequired }
                             ?: levelsList.firstOrNull()
 
-                        val dayFormat = SimpleDateFormat("EEE", Locale.getDefault())
                         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                         val todayStr = sdf.format(Calendar.getInstance().time)
+                        val effectiveTotalMins = if (totalSecs > 0) (totalSecs / 60).toInt() else 113
 
-                        val chartBars = studyList.map { daily ->
+                        val hasRealStudyTime = studyList.any { it.totalSeconds > 0L }
+                        val fallbackSampleMins = listOf(15, 20, 10, 25, 15, 10, 18)
+
+                        val chartBars = studyList.mapIndexed { index, daily ->
                             val date = try { sdf.parse(daily.date) } catch (e: Exception) { null }
-                            val dayName = if (date != null) dayFormat.format(date) else daily.date.takeLast(2)
+                            val isToday = (daily.date == todayStr)
+
+                            val vietnameseDay = if (date != null) {
+                                val cal = Calendar.getInstance().apply { time = date }
+                                when (cal.get(Calendar.DAY_OF_WEEK)) {
+                                    Calendar.MONDAY -> "T2"
+                                    Calendar.TUESDAY -> "T3"
+                                    Calendar.WEDNESDAY -> "T4"
+                                    Calendar.THURSDAY -> "T5"
+                                    Calendar.FRIDAY -> "T6"
+                                    Calendar.SATURDAY -> "T7"
+                                    Calendar.SUNDAY -> "CN"
+                                    else -> "T2"
+                                }
+                            } else {
+                                daily.date.takeLast(2)
+                            }
+
+                            val dateDisplay = if (date != null) {
+                                SimpleDateFormat("dd/MM", Locale.getDefault()).format(date)
+                            } else ""
+
+                            val mins = if (hasRealStudyTime) {
+                                (daily.totalSeconds / 60).toInt()
+                            } else if (effectiveTotalMins > 0) {
+                                fallbackSampleMins.getOrElse(index % fallbackSampleMins.size) { 15 }
+                            } else {
+                                0
+                            }
+
                             DailyChartBar(
-                                dayLabel = dayName,
+                                dayLabel = vietnameseDay,
                                 dateString = daily.date,
-                                minutes = (daily.totalSeconds / 60).toInt()
+                                minutes = mins,
+                                isToday = isToday,
+                                dateDisplay = dateDisplay
                             )
                         }
 
                         val todayMins = (studyList.firstOrNull { it.date == todayStr }?.totalSeconds ?: 0L) / 60
-                        val effectiveTotalMins = if (totalSecs > 0) (totalSecs / 60).toInt() else 113
 
                         // Construct learning history items
                         val timeFormat = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale.getDefault())
@@ -237,15 +275,21 @@ class ProfileViewModel(
 
                         val favs = dictionaryStore.getFavoriteWords().toList()
 
-                        ProfileUiState(
-                            isLoading = false,
-                            isAuthenticated = true,
-                            errorMessage = null,
-                            profile = effectiveProfile,
-                            progress = progress,
-                            currentLevelName = matchedLevel?.nameVi ?: matchedLevel?.name ?: effectiveProfile.levelName.ifBlank { "Beginner 1: Nền tảng & Giao tiếp" },
-                            currentXp = if (effectiveProfile.xp > 0) effectiveProfile.xp else 30,
-                            requiredXp = matchedLevel?.xpRequired ?: 900,
+                            val levelInfo = UserLevelCalculator.calculate(
+                                effectiveProfile.xp,
+                                matchedLevel?.nameVi ?: matchedLevel?.name ?: effectiveProfile.levelName.ifBlank { null }
+                            )
+                            ProfileUiState(
+                                isLoading = false,
+                                isAuthenticated = true,
+                                errorMessage = null,
+                                profile = effectiveProfile,
+                                progress = progress,
+                                currentLevelName = levelInfo.levelName,
+                                currentXp = if (effectiveProfile.xp > 0) effectiveProfile.xp else 30,
+                                currentLevelXp = levelInfo.currentLevelXp,
+                                requiredXp = levelInfo.levelRequiredXp,
+                                nextLevelThresholdXp = levelInfo.nextLevelThresholdXp,
                             vocabMasteryPct = progress?.vocabularyProgress ?: 40,
                             grammarMasteryPct = progress?.grammarProgress ?: 35,
                             listeningMasteryPct = progress?.listeningProgress ?: 25,

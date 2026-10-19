@@ -238,9 +238,9 @@ class ListeningViewModel(
 
     private fun calculateLessonProgressPct(vocabDone: Boolean, grammarDone: Boolean, listeningDone: Boolean): Int {
         var pct = 0
-        if (vocabDone) pct += 25
-        if (grammarDone) pct += 25
-        if (listeningDone) pct += 25
+        if (vocabDone) pct += 20
+        if (grammarDone) pct += 20
+        if (listeningDone) pct += 20
         return pct
     }
 }

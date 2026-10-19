@@ -76,7 +76,7 @@ class LessonCompletionTest {
 
         val state = viewModel.uiState.value
         assertFalse("Lesson must NOT be complete when quiz is incomplete", state.isCompleted)
-        assertEquals(75, state.progressPercentage)
+        assertEquals(60, state.progressPercentage)
         assertTrue(state.vocabularyCompleted)
         assertTrue(state.grammarCompleted)
         assertTrue(state.listeningCompleted)

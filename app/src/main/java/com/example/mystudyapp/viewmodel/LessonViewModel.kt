@@ -9,6 +9,8 @@ import com.example.mystudyapp.data.repository.LearningRepository
 import com.example.mystudyapp.data.repository.LearningRepositoryImpl
 import com.example.mystudyapp.data.repository.ProgressRepository
 import com.example.mystudyapp.data.repository.ProgressRepositoryImpl
+import com.example.mystudyapp.ui.screen.game.GameQuestionGenerator
+import com.example.mystudyapp.ui.screen.game.GameType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +35,8 @@ data class LessonUiState(
     val grammarCompleted: Boolean = false,
     val listeningCompleted: Boolean = false,
     val pronunciationCompleted: Boolean = false,
+    val gameCompleted: Boolean = pronunciationCompleted,
+    val gameType: GameType = GameType.SENTENCE_BUILDER,
     val quizCompleted: Boolean = false,
     val vocabularyCount: Int = 0,
     val grammarCount: Int = 0,
@@ -121,10 +125,16 @@ class LessonViewModel(
                 if (vocabDone) completedModules++
                 if (grammarDone) completedModules++
                 if (listeningDone) completedModules++
+                if (pronunDone) completedModules++
                 if (quizDone) completedModules++
 
-                val isOverallCompleted = (lessonProgress?.completed == true) || (completedModules == 4)
-                val calculatedPct = if (isOverallCompleted) 100 else completedModules * 25
+                val isOverallCompleted = (lessonProgress?.completed == true) || (completedModules == 5)
+                val calculatedPct = if (isOverallCompleted) 100 else completedModules * 20
+
+                val unitResult = learningRepository.getUnit(lesson.unitId).firstOrNull()
+                val unit = unitResult?.getOrNull()
+                val isOddUnit = GameQuestionGenerator.isUnitOdd(lesson.unitId, unit)
+                val gameType = if (isOddUnit) GameType.SENTENCE_BUILDER else GameType.FILL_IN_BLANK
 
                 _uiState.value = LessonUiState(
                     isLoading = false,
@@ -143,6 +153,8 @@ class LessonViewModel(
                     grammarCompleted = grammarDone,
                     listeningCompleted = listeningDone,
                     pronunciationCompleted = pronunDone,
+                    gameCompleted = pronunDone,
+                    gameType = gameType,
                     quizCompleted = quizDone,
                     vocabularyCount = vocabCount,
                     grammarCount = grammarCount,

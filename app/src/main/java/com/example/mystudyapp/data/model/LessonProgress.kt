@@ -19,4 +19,7 @@ data class LessonProgress(
     val lastPronunciationIndex: Int = 0,
     val lastQuizIndex: Int = 0,
     val quizScore: Int = 0
-)
+) {
+    val gameCompleted: Boolean
+        get() = pronunciationCompleted
+}

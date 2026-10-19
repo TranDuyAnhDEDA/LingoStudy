@@ -101,6 +101,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.shared.LingoBottomNav
 import com.example.mystudyapp.ui.theme.LingoBlue
+import com.example.mystudyapp.viewmodel.DailyChartBar
 import com.example.mystudyapp.viewmodel.LearningHistoryItem
 import com.example.mystudyapp.viewmodel.ProfileUiState
 import com.example.mystudyapp.viewmodel.ProfileViewModel
@@ -222,6 +223,16 @@ fun ProfileScreen(
                     // SECTION 2: 4-Column Statistics Card
                     item {
                         ProfileStatsCard(uiState = uiState)
+                    }
+
+                    // SECTION 2.5: Cột thống kê thời gian học mỗi ngày (Daily Study Time Chart)
+                    item {
+                        ProfileStudyTimeChart(
+                            chartBars = uiState.last7DaysChart,
+                            todayMinutes = uiState.todayStudyMinutes,
+                            totalMinutes = uiState.totalStudyMinutes,
+                            dailyGoalMinutes = uiState.profile?.dailyGoalMinutes ?: 30
+                        )
                     }
 
                     // SECTION 3: Main Menu Section (Card with 6 rows)
@@ -456,7 +467,7 @@ private fun ProfileHeader(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "Học viên tích cực",
+                        text = uiState.currentLevelName.ifBlank { "Học viên tích cực" },
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF0284C7)
@@ -552,7 +563,7 @@ private fun ProfileStatsCard(uiState: ProfileUiState) {
                 icon = Icons.Default.Schedule,
                 iconTint = Color(0xFF10B981),
                 iconBg = Color(0xFFDCFCE7),
-                value = "${studyTimeMins}m",
+                value = formatStudyDuration(studyTimeMins),
                 label = "Thời gian học",
                 modifier = Modifier.weight(1f)
             )
@@ -606,6 +617,349 @@ private fun StatColumn(
             textAlign = TextAlign.Center,
             maxLines = 1
         )
+    }
+}
+
+/**
+ * Format minutes into a user-friendly time string:
+ * - Dưới 60 phút: hiển thị dạng m (e.g. "15m", "45m")
+ * - Từ 60 phút trở lên: chuyển sang dạng h + m (e.g. "1h", "1h 15m", "1h 53m")
+ */
+internal fun formatStudyDuration(minutes: Int): String {
+    if (minutes <= 0) return "0m"
+    val h = minutes / 60
+    val m = minutes % 60
+    return when {
+        h == 0 -> "${m}m"
+        m == 0 -> "${h}h"
+        else -> "${h}h ${m}m"
+    }
+}
+
+/**
+ * Phiên bản ngắn gọn cho không gian hẹp (trên đầu cột biểu đồ):
+ * - e.g. "15m", "1h", "1h15m"
+ */
+internal fun formatStudyDurationShort(minutes: Int): String {
+    if (minutes <= 0) return "0"
+    val h = minutes / 60
+    val m = minutes % 60
+    return when {
+        h == 0 -> "${m}m"
+        m == 0 -> "${h}h"
+        else -> "${h}h${m}m"
+    }
+}
+
+// -------------------------------------------------------------
+// SECTION 2.5: Cột thống kê thời gian học mỗi ngày (Daily Study Time Chart)
+// -------------------------------------------------------------
+@Composable
+private fun ProfileStudyTimeChart(
+    chartBars: List<DailyChartBar>,
+    todayMinutes: Int,
+    totalMinutes: Int,
+    dailyGoalMinutes: Int = 30
+) {
+    Surface(
+        color = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp)
+        ) {
+            // Header Row: Icon + Title & Subtitle + Today Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFDCFCE7)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.width(10.dp))
+
+                    Column {
+                        Text(
+                            text = "Thời gian học mỗi ngày",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1E3A8A)
+                        )
+                        Text(
+                            text = "Thời gian sử dụng ứng dụng 7 ngày qua",
+                            fontSize = 11.5.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                }
+
+                // Pill Tag: Hôm nay
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFEFF6FF),
+                    border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(Color(0xFF2563EB), CircleShape)
+                        )
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            text = "Hôm nay: ${formatStudyDuration(todayMinutes)}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E3A8A)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // 3-Metric Summary Mini Row (Tổng 7 ngày, Trung bình, Mục tiêu)
+            val sum7Days = chartBars.sumOf { it.minutes }
+            val display7Days = if (sum7Days > 0) sum7Days else totalMinutes
+            val avgMins = if (chartBars.isNotEmpty()) (display7Days / chartBars.size) else 0
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFFF8FAFC))
+                    .padding(vertical = 10.dp, horizontal = 12.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Metric 1: Tổng 7 ngày
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = formatStudyDuration(display7Days),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF1E3A8A)
+                    )
+                    Text(
+                        text = "Tổng 7 ngày",
+                        fontSize = 10.5.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+
+                VerticalDivider(modifier = Modifier.height(24.dp), color = Color(0xFFE2E8F0))
+
+                // Metric 2: Trung bình/ngày
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = formatStudyDuration(avgMins),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF10B981)
+                    )
+                    Text(
+                        text = "Trung bình/ngày",
+                        fontSize = 10.5.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+
+                VerticalDivider(modifier = Modifier.height(24.dp), color = Color(0xFFE2E8F0))
+
+                // Metric 3: Mục tiêu ngày
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = formatStudyDuration(dailyGoalMinutes),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF2563EB)
+                    )
+                    Text(
+                        text = "Mục tiêu ngày",
+                        fontSize = 10.5.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // Bar Chart Columns (7 vertical bars)
+            val maxMins = maxOf(dailyGoalMinutes, chartBars.maxOfOrNull { it.minutes } ?: 30, 30)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                chartBars.forEach { bar ->
+                    val fraction = (bar.minutes.toFloat() / maxMins.toFloat()).coerceIn(0.04f, 1f)
+                    val isGoalMet = bar.minutes >= dailyGoalMinutes && bar.minutes > 0
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Minute label on top of bar
+                        Text(
+                            text = if (bar.minutes > 0) formatStudyDurationShort(bar.minutes) else "0",
+                            fontSize = 10.sp,
+                            fontWeight = if (bar.isToday) FontWeight.ExtraBold else FontWeight.Medium,
+                            color = when {
+                                bar.isToday -> Color(0xFF2563EB)
+                                isGoalMet -> Color(0xFF10B981)
+                                bar.minutes > 0 -> Color(0xFF475569)
+                                else -> Color(0xFFCBD5E1)
+                            }
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        // Vertical bar container
+                        Box(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height(95.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (bar.isToday) Color(0xFFEFF6FF) else Color(0xFFF1F5F9))
+                                .then(
+                                    if (bar.isToday) Modifier.border(1.5.dp, Color(0xFF93C5FD), RoundedCornerShape(12.dp))
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            // Target Goal guideline indicator (at dailyGoalMinutes height)
+                            val goalFraction = (dailyGoalMinutes.toFloat() / maxMins.toFloat()).coerceIn(0f, 1f)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.BottomCenter)
+                                    .offset(y = -(95.dp * goalFraction))
+                                    .height(1.dp)
+                                    .background(Color(0xFFE2E8F0))
+                            )
+
+                            // Filled bar with rounded corners and gradient
+                            if (bar.minutes > 0) {
+                                val barBrush = when {
+                                    isGoalMet -> Brush.verticalGradient(
+                                        colors = listOf(Color(0xFF34D399), Color(0xFF10B981))
+                                    )
+                                    bar.isToday -> Brush.verticalGradient(
+                                        colors = listOf(Color(0xFF38BDF8), Color(0xFF2563EB))
+                                    )
+                                    else -> Brush.verticalGradient(
+                                        colors = listOf(Color(0xFF93C5FD), Color(0xFF3B82F6))
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight(fraction)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(barBrush)
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        // Day label (T2, T3, T4, T5, T6, T7, CN)
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (bar.isToday) Color(0xFF2563EB) else Color.Transparent
+                        ) {
+                            Text(
+                                text = bar.dayLabel,
+                                fontSize = 11.5.sp,
+                                fontWeight = if (bar.isToday) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                color = if (bar.isToday) Color.White else Color(0xFF475569),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+
+                        // Date label (e.g. 13/10)
+                        if (bar.dateDisplay.isNotBlank()) {
+                            Text(
+                                text = bar.dateDisplay,
+                                fontSize = 9.sp,
+                                color = if (bar.isToday) Color(0xFF2563EB) else Color(0xFF94A3B8),
+                                fontWeight = if (bar.isToday) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Goal Progress Note Banner
+            val todayProgressPct = ((todayMinutes.toFloat() / dailyGoalMinutes.toFloat()) * 100).toInt().coerceIn(0, 100)
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (todayMinutes >= dailyGoalMinutes) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
+                border = BorderStroke(1.dp, if (todayMinutes >= dailyGoalMinutes) Color(0xFFBBF7D0) else Color(0xFFE2E8F0)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (todayMinutes >= dailyGoalMinutes) Icons.Default.CheckCircle else Icons.Default.LocalFireDepartment,
+                        contentDescription = null,
+                        tint = if (todayMinutes >= dailyGoalMinutes) Color(0xFF10B981) else Color(0xFFF59E0B),
+                        modifier = Modifier.size(16.dp)
+                    )
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        text = if (todayMinutes >= dailyGoalMinutes) {
+                            "Đã hoàn thành mục tiêu học hôm nay (${formatStudyDuration(todayMinutes)}/${formatStudyDuration(dailyGoalMinutes)}) 🎉"
+                        } else {
+                            "Còn ${formatStudyDuration(dailyGoalMinutes - todayMinutes)} nữa để đạt mục tiêu hôm nay (${formatStudyDuration(todayMinutes)}/${formatStudyDuration(dailyGoalMinutes)})"
+                        },
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (todayMinutes >= dailyGoalMinutes) Color(0xFF166534) else Color(0xFF475569),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Text(
+                        text = "$todayProgressPct%",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (todayMinutes >= dailyGoalMinutes) Color(0xFF10B981) else Color(0xFF2563EB)
+                    )
+                }
+            }
+        }
     }
 }
 

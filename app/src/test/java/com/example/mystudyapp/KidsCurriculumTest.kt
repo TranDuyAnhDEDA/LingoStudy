@@ -26,7 +26,7 @@ class KidsCurriculumTest {
         assertEquals("program_kids", level.programId)
         assertNotNull(level.name)
         assertNotNull(level.nameVi)
-        assertEquals(900, level.xpRequired)
+        assertEquals(200, level.xpRequired)
     }
 
     @Test

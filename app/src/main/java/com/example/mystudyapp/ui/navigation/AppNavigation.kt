@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -17,9 +20,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mystudyapp.data.model.AuthState
 import com.example.mystudyapp.ui.component.AppUsageTimeTracker
+import com.example.mystudyapp.ui.component.chatbot.ParrotChatModal
+import com.example.mystudyapp.ui.component.chatbot.ParrotFloatingMascot
 import com.example.mystudyapp.ui.screen.auth.LoginScreen
 import com.example.mystudyapp.ui.screen.auth.RegisterScreen
 import com.example.mystudyapp.ui.screen.dictionary.DictionaryScreen
+import com.example.mystudyapp.ui.screen.game.GameScreen
 import com.example.mystudyapp.ui.screen.grammar.GrammarScreen
 import com.example.mystudyapp.ui.screen.profile.ProfileScreen
 import com.example.mystudyapp.ui.screen.home.HomeScreen
@@ -35,6 +41,8 @@ import com.example.mystudyapp.ui.screen.vocabulary.VocabularyScreen
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.viewmodel.AuthViewModel
 import com.example.mystudyapp.viewmodel.AuthViewModelFactory
+import com.example.mystudyapp.viewmodel.ChatbotViewModel
+import com.example.mystudyapp.viewmodel.ChatbotViewModelFactory
 
 @Composable
 fun AppNavigation(
@@ -45,7 +53,7 @@ fun AppNavigation(
 
     val safeNavigate: (String) -> Unit = { route ->
         if (navController.currentDestination?.route != route) {
-            if (route.startsWith("program/") || route.startsWith("level/") || route.startsWith("unit/") || route.startsWith("lesson/") || route.startsWith("vocabulary/") || route.startsWith("grammar/") || route.startsWith("listening/") || route.startsWith("pronunciation/") || route.startsWith("quiz/")) {
+            if (route.startsWith("program/") || route.startsWith("level/") || route.startsWith("unit/") || route.startsWith("lesson/") || route.startsWith("vocabulary/") || route.startsWith("grammar/") || route.startsWith("listening/") || route.startsWith("game/") || route.startsWith("pronunciation/") || route.startsWith("quiz/")) {
                 navController.navigate(route)
             } else {
                 navController.navigate(route) {
@@ -92,7 +100,11 @@ fun AppNavigation(
 
         is AuthState.Authenticated -> {
             AppUsageTimeTracker()
-            NavHost(navController = navController, startDestination = "home") {
+            val chatbotViewModel: ChatbotViewModel = viewModel(factory = ChatbotViewModelFactory())
+            var showChatModal by remember { mutableStateOf(false) }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                NavHost(navController = navController, startDestination = "home") {
                 composable("home") {
                     HomeScreen(onNavigate = safeNavigate)
                 }
@@ -161,7 +173,8 @@ fun AppNavigation(
                         onNavigateToVocabulary = { navController.navigate("vocabulary/$lessonId") },
                         onNavigateToGrammar = { navController.navigate("grammar/$lessonId") },
                         onNavigateToListening = { navController.navigate("listening/$lessonId") },
-                        onNavigateToPronunciation = { navController.navigate("pronunciation/$lessonId") },
+                        onNavigateToGame = { navController.navigate("game/$lessonId") },
+                        onNavigateToPronunciation = { navController.navigate("game/$lessonId") },
                         onNavigateToQuiz = { navController.navigate("quiz/$lessonId") }
                     )
                 }
@@ -202,11 +215,23 @@ fun AppNavigation(
                     )
                 }
                 composable(
+                    route = "game/{lessonId}",
+                    arguments = listOf(navArgument("lessonId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val lessonId = backStackEntry.arguments?.getString("lessonId") ?: ""
+                    GameScreen(
+                        lessonId = lessonId,
+                        onBackToLesson = {
+                            navController.popBackStack()
+                        }
+                    )
+                }
+                composable(
                     route = "pronunciation/{lessonId}",
                     arguments = listOf(navArgument("lessonId") { type = NavType.StringType })
                 ) { backStackEntry ->
                     val lessonId = backStackEntry.arguments?.getString("lessonId") ?: ""
-                    PronunciationScreen(
+                    GameScreen(
                         lessonId = lessonId,
                         onBackToLesson = {
                             navController.popBackStack()
@@ -226,6 +251,19 @@ fun AppNavigation(
                     )
                 }
             }
+
+            ParrotFloatingMascot(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                onClick = { showChatModal = true }
+            )
+
+            if (showChatModal) {
+                ParrotChatModal(
+                    viewModel = chatbotViewModel,
+                    onDismiss = { showChatModal = false }
+                )
+            }
         }
     }
+}
 }

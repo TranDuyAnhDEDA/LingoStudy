@@ -115,8 +115,8 @@ class ProfileFeatureTest {
         assertNotNull(state.profile)
         assertEquals("Alex Learner", state.profile?.displayName)
         assertEquals(450, state.currentXp)
-        assertEquals(900, state.requiredXp)
-        assertEquals("Beginner Explorer", state.currentLevelName)
+        assertEquals(300, state.requiredXp)
+        assertEquals("Cấp 3", state.currentLevelName)
 
         // Skill Mastery
         assertEquals(80, state.vocabMasteryPct)
@@ -234,6 +234,24 @@ class ProfileFeatureTest {
         assertTrue(AVAILABLE_AVATARS.isNotEmpty())
         assertTrue(AVAILABLE_AVATARS.any { it.id == "boy_hoodie" })
         assertTrue(AVAILABLE_AVATARS.any { it.id == "girl_glasses" })
+    }
+
+    @Test
+    fun testFormatStudyDurationUnderAndOver60Minutes() {
+        assertEquals("0m", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(0))
+        assertEquals("15m", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(15))
+        assertEquals("45m", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(45))
+        assertEquals("1h", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(60))
+        assertEquals("1h 15m", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(75))
+        assertEquals("1h 53m", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(113))
+        assertEquals("2h", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(120))
+        assertEquals("2h 15m", com.example.mystudyapp.ui.screen.profile.formatStudyDuration(135))
+
+        assertEquals("0", com.example.mystudyapp.ui.screen.profile.formatStudyDurationShort(0))
+        assertEquals("15m", com.example.mystudyapp.ui.screen.profile.formatStudyDurationShort(15))
+        assertEquals("1h", com.example.mystudyapp.ui.screen.profile.formatStudyDurationShort(60))
+        assertEquals("1h15m", com.example.mystudyapp.ui.screen.profile.formatStudyDurationShort(75))
+        assertEquals("1h53m", com.example.mystudyapp.ui.screen.profile.formatStudyDurationShort(113))
     }
 
     class FakeAuthRepo(private val user: AuthUser?) : AuthRepository {

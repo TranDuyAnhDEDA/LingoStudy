@@ -143,24 +143,24 @@ class ActivityCompletionFlowTest {
         val fakeAuthRepo = FakeAuthRepo(testUser)
         val testLesson = Lesson("lesson_3_1_1", "unit_3_1", "program_beginner", "Airport", null, "Desc", null, 1, 8, 30)
 
-        // 1 of 4 active modules = 25%
-        val progress1 = LessonProgress("lesson_3_1_1", vocabularyCompleted = true, progress = 25)
+        // 1 of 5 active modules = 20%
+        val progress1 = LessonProgress("lesson_3_1_1", vocabularyCompleted = true, progress = 20)
         val viewModel1 = LessonViewModel("lesson_3_1_1", fakeAuthRepo, FakeProgressRepo(lessonProgress = progress1), FakeLearningRepo(lesson = testLesson))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(25, viewModel1.uiState.value.progressPercentage)
+        assertEquals(20, viewModel1.uiState.value.progressPercentage)
 
-        // 2 of 4 active modules = 50%
-        val progress2 = LessonProgress("lesson_3_1_1", vocabularyCompleted = true, grammarCompleted = true, progress = 50)
+        // 2 of 5 active modules = 40%
+        val progress2 = LessonProgress("lesson_3_1_1", vocabularyCompleted = true, grammarCompleted = true, progress = 40)
         val viewModel2 = LessonViewModel("lesson_3_1_1", fakeAuthRepo, FakeProgressRepo(lessonProgress = progress2), FakeLearningRepo(lesson = testLesson))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(50, viewModel2.uiState.value.progressPercentage)
+        assertEquals(40, viewModel2.uiState.value.progressPercentage)
 
-        // 4 of 4 active modules = 100%
-        val progress4 = LessonProgress("lesson_3_1_1", vocabularyCompleted = true, grammarCompleted = true, listeningCompleted = true, quizCompleted = true, completed = true, progress = 100)
-        val viewModel4 = LessonViewModel("lesson_3_1_1", fakeAuthRepo, FakeProgressRepo(lessonProgress = progress4), FakeLearningRepo(lesson = testLesson))
+        // 5 of 5 active modules = 100%
+        val progress5 = LessonProgress("lesson_3_1_1", vocabularyCompleted = true, grammarCompleted = true, listeningCompleted = true, pronunciationCompleted = true, quizCompleted = true, completed = true, progress = 100)
+        val viewModel5 = LessonViewModel("lesson_3_1_1", fakeAuthRepo, FakeProgressRepo(lessonProgress = progress5), FakeLearningRepo(lesson = testLesson))
         testDispatcher.scheduler.advanceUntilIdle()
-        assertEquals(100, viewModel4.uiState.value.progressPercentage)
-        assertTrue(viewModel4.uiState.value.isCompleted)
+        assertEquals(100, viewModel5.uiState.value.progressPercentage)
+        assertTrue(viewModel5.uiState.value.isCompleted)
     }
 
     class FakeAuthRepo(private val user: AuthUser?) : AuthRepository {

@@ -187,7 +187,7 @@ fun HomeScreen(
                             CurrentLevelSection(
                                 levelName = uiState.levelName,
                                 levelOrder = uiState.levelOrder,
-                                currentXp = uiState.currentXp,
+                                currentXp = uiState.currentLevelXp,
                                 requiredXp = uiState.requiredXp,
                                 onClick = { onNavigate("learn") }
                             )
@@ -862,173 +862,177 @@ private fun ContinueLearningSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(26.dp),
-        color = Color.White.copy(alpha = 0.95f),
-        border = BorderStroke(1.dp, Color.White),
-        shadowElevation = 2.dp
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shadowElevation = 3.dp
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(26.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(
-                    brush = Brush.horizontalGradient(
+                    brush = Brush.verticalGradient(
                         colors = if (isNewUser) {
-                            listOf(Color(0xFFFFFDF5), Color(0xFFFEF9C3).copy(alpha = 0.4f))
+                            listOf(Color(0xFFFFFDF5), Color(0xFFFEF9C3).copy(alpha = 0.35f))
                         } else {
-                            listOf(Color(0xFFF8FAFC), Color(0xFFEFF6FF).copy(alpha = 0.6f))
+                            listOf(Color.White, Color(0xFFF0F7FF).copy(alpha = 0.75f))
                         }
                     )
                 )
                 .clickable { onResumeClick() }
-                .padding(18.dp)
+                .padding(20.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(0.68f)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Top Row: Tag badge on left, lesson count badge on right
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Surface(
                         color = if (isNewUser) Color(0xFFFEF3C7) else Color(0xFFDBEAFE),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(
-                            text = if (isNewUser) "BẮT ĐẦU HÀNH TRÌNH" else "TIẾP TỤC HỌC • UNIT",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = if (isNewUser) Color(0xFF92400E) else Color(0xFF2563EB),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Text(
-                        text = if (isNewUser) "Chào mừng bạn đến với LingoStudy!" else unfinishedUnitTitle.ifBlank { "Unit 1: Chào hỏi & Giới thiệu" },
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1E3A8A),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(Modifier.height(3.dp))
-
-                    Text(
-                        text = if (isNewUser) {
-                            "Học bài học đầu tiên để tích lũy XP và xây dựng thói quen mỗi ngày."
-                        } else if (unfinishedLessonTitle.isNotBlank()) {
-                            "Đang học: $unfinishedLessonTitle"
-                        } else {
-                            "Tiếp tục bài học của bạn"
-                        },
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
-                    if (!isNewUser) {
-                        val total = if (unitTotalLessons > 0) unitTotalLessons else 3
-                        val completed = unitCompletedLessons.coerceIn(0, total)
-                        val fraction = completed.toFloat() / total.toFloat()
-
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.5.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(7.dp)
-                                    .clip(RoundedCornerShape(3.5.dp))
-                                    .background(Color(0xFFE2E8F0))
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(fraction.coerceAtLeast(0.04f))
-                                        .height(7.dp)
-                                        .clip(RoundedCornerShape(3.5.dp))
-                                        .background(
-                                            brush = Brush.horizontalGradient(
-                                                listOf(Color(0xFF60A5FA), Color(0xFF2563EB))
-                                            )
-                                        )
-                                )
-                            }
-                            Spacer(Modifier.width(8.dp))
+                            Icon(
+                                imageVector = if (isNewUser) Icons.Default.AutoStories else Icons.Default.School,
+                                contentDescription = null,
+                                tint = if (isNewUser) Color(0xFF92400E) else Color(0xFF2563EB),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(Modifier.width(5.dp))
                             Text(
-                                text = "$completed / $total bài học",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF475569),
+                                text = if (isNewUser) "BẮT ĐẦU HÀNH TRÌNH" else "TIẾP TỤC HỌC • UNIT",
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isNewUser) Color(0xFF92400E) else Color(0xFF2563EB),
                                 maxLines = 1,
                                 softWrap = false
                             )
                         }
-                        Spacer(Modifier.height(14.dp))
                     }
 
-                    Button(
-                        onClick = onResumeClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(42.dp),
-                        shape = RoundedCornerShape(21.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isNewUser) Color(0xFF2563EB) else Color(0xFF1D4ED8)
-                        )
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (isNewUser) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
+                    if (!isNewUser) {
+                        val total = if (unitTotalLessons > 0) unitTotalLessons else 3
+                        val completed = unitCompletedLessons.coerceIn(0, total)
+                        val percent = if (total > 0) (completed * 100) / total else 0
+
+                        Surface(
+                            color = Color(0xFFF1F5F9),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
                             Text(
-                                text = if (isNewUser) "Bắt đầu Unit 1 ngay" else "Tiếp tục học Unit",
-                                fontSize = 13.sp,
+                                text = "$completed / $total bài học ($percent%)",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                softWrap = false
+                                color = Color(0xFF475569),
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.height(12.dp))
 
-                Column(
-                    modifier = Modifier.weight(0.32f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Speech bubble "Hello!"
-                    Surface(
-                        color = Color(0xFF38BDF8),
-                        shape = RoundedCornerShape(12.dp),
-                        shadowElevation = 1.dp
+                // Unit Title
+                Text(
+                    text = if (isNewUser) "Chào mừng bạn đến với LingoStudy!" else unfinishedUnitTitle.ifBlank { "Unit 1: Chào hỏi & Giới thiệu" },
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E3A8A),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                // Subtitle
+                Text(
+                    text = if (isNewUser) {
+                        "Học bài học đầu tiên để tích lũy XP và xây dựng thói quen mỗi ngày."
+                    } else if (unfinishedLessonTitle.isNotBlank()) {
+                        "Đang học: $unfinishedLessonTitle"
+                    } else {
+                        "Tiếp tục bài học của bạn để hoàn thành Unit"
+                    },
+                    fontSize = 12.5.sp,
+                    color = Color(0xFF64748B),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // Progress Bar (for returning user)
+                if (!isNewUser) {
+                    val total = if (unitTotalLessons > 0) unitTotalLessons else 3
+                    val completed = unitCompletedLessons.coerceIn(0, total)
+                    val fraction = completed.toFloat() / total.toFloat()
+
+                    Spacer(Modifier.height(14.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFFE2E8F0))
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction.coerceAtLeast(0.04f))
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color(0xFF38BDF8), Color(0xFF2563EB))
+                                    )
+                                )
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Action Button
+                Button(
+                    onClick = onResumeClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    shape = RoundedCornerShape(22.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isNewUser) Color(0xFF2563EB) else Color(0xFF1D4ED8)
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (isNewUser) Icons.AutoMirrored.Filled.ArrowForward else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Hello!",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            text = if (isNewUser) "Bắt đầu Unit 1 ngay" else "Tiếp tục học Unit",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             softWrap = false
                         )
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp)
+                        )
                     }
-                    Spacer(Modifier.height(4.dp))
-                    MascotView(
-                        modifier = Modifier.size(88.dp),
-                        expression = if (isNewUser) MascotExpression.EXCITED else MascotExpression.HAPPY,
-                        enableAnimation = true
-                    )
                 }
             }
         }

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.example.mystudyapp.data.model.UserLevelCalculator
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -37,7 +38,9 @@ data class HomeUiState(
     val levelName: String = "",
     val levelOrder: Int = 1,
     val currentXp: Int = 0,
-    val requiredXp: Int = 900,
+    val currentLevelXp: Int = 0,
+    val requiredXp: Int = 200,
+    val nextLevelThresholdXp: Int = 200,
     val currentUnitId: String = "unit_b1_1",
     val currentLessonId: String = "",
     val currentLessonTitle: String = "",
@@ -130,9 +133,15 @@ class HomeViewModel(
                                         ?: levelsList.firstOrNull { profile.xp < it.xpRequired }
                                         ?: levelsList.firstOrNull()
 
-                                    val currentLevelName = matchedLevel?.nameVi ?: matchedLevel?.name ?: "Beginner 1: Nền tảng & Giao tiếp"
-                                    val currentLevelOrder = matchedLevel?.order ?: 1
-                                    val currentLevelRequiredXp = matchedLevel?.xpRequired ?: 900
+                                    val levelInfo = UserLevelCalculator.calculate(
+                                        profile.xp,
+                                        matchedLevel?.nameVi ?: matchedLevel?.name
+                                    )
+                                    val currentLevelName = levelInfo.levelName
+                                    val currentLevelOrder = levelInfo.levelOrder
+                                    val currentLevelXp = levelInfo.currentLevelXp
+                                    val currentLevelRequiredXp = levelInfo.levelRequiredXp
+                                    val nextLevelThresholdXp = levelInfo.nextLevelThresholdXp
 
                                     val unitResult = if (lesson?.unitId != null) {
                                         learningRepository.getUnit(lesson.unitId).firstOrNull()
@@ -205,7 +214,9 @@ class HomeViewModel(
                                         levelName = currentLevelName,
                                         levelOrder = currentLevelOrder,
                                         currentXp = profile.xp,
+                                        currentLevelXp = currentLevelXp,
                                         requiredXp = currentLevelRequiredXp,
+                                        nextLevelThresholdXp = nextLevelThresholdXp,
                                         currentUnitId = currentUnitId,
                                         currentLessonId = activeLessonId,
                                         currentLessonTitle = resolvedLesson?.titleVi ?: resolvedLesson?.title ?: "Saying Hello & Goodbye",

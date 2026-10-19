@@ -266,7 +266,7 @@ class VocabularyViewModel(
     }
 
     private fun calculateLessonProgressPct(vocabularyCompleted: Boolean): Int {
-        return if (vocabularyCompleted) 25 else 10
+        return if (vocabularyCompleted) 20 else 10
     }
 }
 

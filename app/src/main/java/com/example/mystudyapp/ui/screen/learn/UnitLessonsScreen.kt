@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Psychology
@@ -1092,7 +1093,7 @@ private fun LessonDetailDialog(
                             SkillStatusIcon(name = "Từ vựng", isDone = vocabDone, icon = Icons.Default.AutoStories)
                             SkillStatusIcon(name = "Ngữ pháp", isDone = grammarDone, icon = Icons.Default.School)
                             SkillStatusIcon(name = "Nghe", isDone = listeningDone, icon = Icons.AutoMirrored.Filled.VolumeUp)
-                            SkillStatusIcon(name = "Phát âm", isDone = pronunDone, icon = Icons.Default.Mic)
+                            SkillStatusIcon(name = "Trò chơi", isDone = pronunDone, icon = Icons.Default.Extension)
                             SkillStatusIcon(name = "Quiz", isDone = quizDone, icon = Icons.Default.Psychology)
                         }
                     }

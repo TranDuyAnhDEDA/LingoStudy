@@ -47,7 +47,7 @@ object KidsCurriculumData {
         description = "Step-by-step English journey for young learners across 10 exciting units.",
         descriptionVi = "Hành trình học tiếng Anh từng bước hào hứng dành cho trẻ em qua 10 Unit lý thú.",
         order = 1,
-        xpRequired = 900
+        xpRequired = 200
     )
 
     val units = listOf(

@@ -91,10 +91,19 @@ class ProgressRepositoryImpl(
             if (vocabDone) completedModulesCount++
             if (grammarDone) completedModulesCount++
             if (listeningDone) completedModulesCount++
+            if (pronunDone) completedModulesCount++
             if (quizDone) completedModulesCount++
 
-            val calculatedProgressPct = (completedModulesCount * 25).coerceAtMost(100)
-            val isOverallCompleted = (completedModulesCount == 4) || (existingProgress?.completed == true)
+            // Calculate newly completed tasks to award +20 XP per task
+            var newlyCompletedTasksCount = 0
+            if (progress.vocabularyCompleted && existingProgress?.vocabularyCompleted != true) newlyCompletedTasksCount++
+            if (progress.grammarCompleted && existingProgress?.grammarCompleted != true) newlyCompletedTasksCount++
+            if (progress.listeningCompleted && existingProgress?.listeningCompleted != true) newlyCompletedTasksCount++
+            if (progress.pronunciationCompleted && existingProgress?.pronunciationCompleted != true) newlyCompletedTasksCount++
+            if (progress.quizCompleted && existingProgress?.quizCompleted != true) newlyCompletedTasksCount++
+
+            val isOverallCompleted = (completedModulesCount == 5) || (existingProgress?.completed == true)
+            val calculatedProgressPct = if (isOverallCompleted) 100 else (completedModulesCount * 20).coerceAtMost(100)
 
             val lastVocabIndex = if (progress.lastVocabularyIndex > 0) progress.lastVocabularyIndex else (existingProgress?.lastVocabularyIndex ?: 0)
             val lastGrammarIndex = if (progress.lastGrammarIndex > 0) progress.lastGrammarIndex else (existingProgress?.lastGrammarIndex ?: 0)
@@ -136,7 +145,25 @@ class ProgressRepositoryImpl(
                 batch.set(userProgressRef, parentUpdates, SetOptions.merge())
             }
 
+            // Award +20 XP for each newly completed task
+            if (newlyCompletedTasksCount > 0) {
+                val userProfileRef = firestore.collection("users").document(uid)
+                batch.set(
+                    userProfileRef,
+                    mapOf(
+                        "xp" to FieldValue.increment(newlyCompletedTasksCount * 20L),
+                        "lastActiveAt" to FieldValue.serverTimestamp()
+                    ),
+                    SetOptions.merge()
+                )
+            }
+
             batch.commit().await()
+
+            if (newlyCompletedTasksCount > 0) {
+                checkAndUpdateStreak(uid)
+            }
+
             if (isOverallCompleted && preservedXpEarned == 0) {
                 completeLessonIfEligible(uid, progress.lessonId)
             }
@@ -191,6 +218,7 @@ class ProgressRepositoryImpl(
             val isEligible = (progress.vocabularyCompleted &&
                     progress.grammarCompleted &&
                     progress.listeningCompleted &&
+                    progress.pronunciationCompleted &&
                     progress.quizCompleted) || progress.completed
 
             if (!isEligible) {

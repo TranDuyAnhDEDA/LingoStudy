@@ -179,7 +179,7 @@ class GrammarViewModel(
 
                 val updatedProgress = LessonProgress(
                     lessonId = lessonId,
-                    progress = if (vocabDone) 50 else 25,
+                    progress = if (vocabDone) 40 else 20,
                     completed = false,
                     vocabularyCompleted = vocabDone,
                     grammarCompleted = true,

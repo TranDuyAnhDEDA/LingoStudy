@@ -27,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Schedule
@@ -56,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.ActiveStudyTimeTracker
+import com.example.mystudyapp.ui.screen.game.GameType
 import com.example.mystudyapp.ui.theme.CategoryGrammarBg
 import com.example.mystudyapp.ui.theme.CategoryListeningBg
 import com.example.mystudyapp.ui.theme.CategoryPronunBg
@@ -78,6 +80,7 @@ fun LessonScreen(
     onNavigateToGrammar: () -> Unit = {},
     onNavigateToListening: () -> Unit = {},
     onNavigateToPronunciation: () -> Unit = {},
+    onNavigateToGame: () -> Unit = onNavigateToPronunciation,
     onNavigateToQuiz: () -> Unit = {},
     viewModel: LessonViewModel = viewModel(factory = LessonViewModelFactory(lessonId))
 ) {
@@ -153,16 +156,18 @@ fun LessonScreen(
                             !uiState.vocabularyCompleted -> onNavigateToVocabulary
                             !uiState.grammarCompleted -> onNavigateToGrammar
                             !uiState.listeningCompleted -> onNavigateToListening
+                            !uiState.gameCompleted -> onNavigateToGame
                             !uiState.quizCompleted -> onNavigateToQuiz
                             else -> onNavigateToVocabulary
                         }
 
                         val buttonText = when {
                             uiState.isCompleted -> "Ôn tập bài học"
-                            !uiState.vocabularyCompleted -> "Bắt đầu học: Từ vựng"
-                            !uiState.grammarCompleted -> "Tiếp tục học: Ngữ pháp"
-                            !uiState.listeningCompleted -> "Tiếp tục học: Luyện nghe"
-                            !uiState.quizCompleted -> "Làm bài kiểm tra (+${uiState.xpReward} XP)"
+                            !uiState.vocabularyCompleted -> "Bắt đầu học: Từ vựng (+20 XP)"
+                            !uiState.grammarCompleted -> "Tiếp tục học: Ngữ pháp (+20 XP)"
+                            !uiState.listeningCompleted -> "Tiếp tục học: Luyện nghe (+20 XP)"
+                            !uiState.gameCompleted -> "Chơi mini game (+20 XP)"
+                            !uiState.quizCompleted -> "Làm bài kiểm tra (+20 XP)"
                             else -> "Ôn tập bài học"
                         }
 
@@ -428,13 +433,13 @@ fun LessonScreen(
                         )
 
                         ContentOverviewCard(
-                            title = "Phát âm (Tạm ẩn)",
-                            countText = "Bỏ qua cho bài học này",
-                            icon = Icons.Default.Mic,
-                            bgColor = Color(0xFFF1F5F9),
-                            accentColor = Color(0xFF94A3B8),
-                            isCompleted = false,
-                            onClick = {}
+                            title = "Trò chơi",
+                            countText = if (uiState.gameType == GameType.SENTENCE_BUILDER) "Ghép chữ thành câu" else "Điền từ vào ô trống",
+                            icon = Icons.Default.Extension,
+                            bgColor = Color(0xFFFEF3C7),
+                            accentColor = Color(0xFFD97706),
+                            isCompleted = uiState.gameCompleted,
+                            onClick = onNavigateToGame
                         )
 
                         ContentOverviewCard(

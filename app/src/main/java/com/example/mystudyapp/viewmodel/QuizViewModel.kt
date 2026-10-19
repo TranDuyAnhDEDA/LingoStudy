@@ -282,10 +282,11 @@ class QuizViewModel(
         quizDone: Boolean
     ): Int {
         var pct = 0
-        if (vocabDone) pct += 25
-        if (grammarDone) pct += 25
-        if (listeningDone) pct += 25
-        if (quizDone) pct += 25
+        if (vocabDone) pct += 20
+        if (grammarDone) pct += 20
+        if (listeningDone) pct += 20
+        if (pronunDone) pct += 20
+        if (quizDone) pct += 20
         return pct.coerceAtMost(100)
     }
 }

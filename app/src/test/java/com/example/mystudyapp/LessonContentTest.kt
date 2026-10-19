@@ -90,7 +90,7 @@ class LessonContentTest {
     }
 
     @Test
-    fun testProgressCalculationWhenPronunciationIsBypassed() {
+    fun testProgressCalculationFiveModulesTwentyPercentEach() {
         var completedModules = 0
         val vocabDone = true
         val grammarDone = true
@@ -98,12 +98,12 @@ class LessonContentTest {
         if (vocabDone) completedModules++
         if (grammarDone) completedModules++
 
-        var progressPct = (completedModules * 25).coerceAtMost(100)
-        assertEquals(50, progressPct)
+        var progressPct = (completedModules * 20).coerceAtMost(100)
+        assertEquals(40, progressPct)
 
-        completedModules = 4
-        progressPct = (completedModules * 25).coerceAtMost(100)
-        val isOverallCompleted = (completedModules == 4)
+        completedModules = 5
+        progressPct = (completedModules * 20).coerceAtMost(100)
+        val isOverallCompleted = (completedModules == 5)
 
         assertEquals(100, progressPct)
         assertTrue(isOverallCompleted)

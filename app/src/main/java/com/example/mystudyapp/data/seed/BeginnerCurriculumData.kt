@@ -47,7 +47,7 @@ object BeginnerCurriculumData {
         description = "Master everyday vocabulary, practical dialogues, and essential grammar across 10 structured units.",
         descriptionVi = "Thành thạo từ vựng hàng ngày, hội thoại thực tế và ngữ pháp thiết yếu qua 10 bài học.",
         order = 1,
-        xpRequired = 900
+        xpRequired = 200
     )
 
     val units = listOf(
