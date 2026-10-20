@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.ActiveStudyTimeTracker
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.ui.screen.game.GameType
 import com.example.mystudyapp.ui.theme.CategoryGrammarBg
 import com.example.mystudyapp.ui.theme.CategoryListeningBg
@@ -85,6 +87,7 @@ fun LessonScreen(
     viewModel: LessonViewModel = viewModel(factory = LessonViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -109,38 +112,41 @@ fun LessonScreen(
                 shadowElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFFF1F5F9),
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Row(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clickable { onBackClick() }
+                            .responsiveContentWidth(680.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = if (windowInfo.isCompact) 12.dp else 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.padding(8.dp),
-                            tint = Color(0xFF1E3A8A)
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier
+                                .size(if (windowInfo.isCompact) 36.dp else 40.dp)
+                                .clickable { onBackClick() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                modifier = Modifier.padding(8.dp),
+                                tint = Color(0xFF1E3A8A)
+                            )
+                        }
+
+                        Spacer(Modifier.width(if (windowInfo.isCompact) 10.dp else 16.dp))
+
+                        Text(
+                            text = uiState.title.ifBlank { "Chi tiết bài học" },
+                            fontSize = if (windowInfo.isCompact) 14.5.sp else 16.5.sp,
+                            lineHeight = if (windowInfo.isCompact) 18.sp else 21.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E3A8A),
+                            maxLines = 2,
+                            modifier = Modifier.weight(1f)
                         )
                     }
-
-                    Spacer(Modifier.width(16.dp))
-
-                    Text(
-                        text = uiState.title.ifBlank { "Chi tiết bài học" },
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A8A),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
                 }
             }
         },
@@ -151,50 +157,59 @@ fun LessonScreen(
                     shadowElevation = 8.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Box(modifier = Modifier.padding(16.dp)) {
-                        val nextAction = when {
-                            !uiState.vocabularyCompleted -> onNavigateToVocabulary
-                            !uiState.grammarCompleted -> onNavigateToGrammar
-                            !uiState.listeningCompleted -> onNavigateToListening
-                            !uiState.gameCompleted -> onNavigateToGame
-                            !uiState.quizCompleted -> onNavigateToQuiz
-                            else -> onNavigateToVocabulary
-                        }
-
-                        val buttonText = when {
-                            uiState.isCompleted -> "Ôn tập bài học"
-                            !uiState.vocabularyCompleted -> "Bắt đầu học: Từ vựng (+20 XP)"
-                            !uiState.grammarCompleted -> "Tiếp tục học: Ngữ pháp (+20 XP)"
-                            !uiState.listeningCompleted -> "Tiếp tục học: Luyện nghe (+20 XP)"
-                            !uiState.gameCompleted -> "Chơi mini game (+20 XP)"
-                            !uiState.quizCompleted -> "Làm bài kiểm tra (+20 XP)"
-                            else -> "Ôn tập bài học"
-                        }
-
-                        Button(
-                            onClick = { nextAction() },
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Box(
                             modifier = Modifier
+                                .responsiveContentWidth(680.dp)
                                 .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(26.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (uiState.isCompleted) LingoGreen else LingoBlue
-                            )
+                                .padding(horizontal = if (windowInfo.isCompact) 12.dp else 16.dp, vertical = 10.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = buttonText,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                            val nextAction = when {
+                                !uiState.vocabularyCompleted -> onNavigateToVocabulary
+                                !uiState.grammarCompleted -> onNavigateToGrammar
+                                !uiState.listeningCompleted -> onNavigateToListening
+                                !uiState.gameCompleted -> onNavigateToGame
+                                !uiState.quizCompleted -> onNavigateToQuiz
+                                else -> onNavigateToVocabulary
+                            }
+
+                            val buttonText = when {
+                                uiState.isCompleted -> "Ôn tập bài học"
+                                !uiState.vocabularyCompleted -> "Học từ vựng (+20 XP)"
+                                !uiState.grammarCompleted -> "Học ngữ pháp (+20 XP)"
+                                !uiState.listeningCompleted -> "Luyện nghe (+20 XP)"
+                                !uiState.gameCompleted -> "Mini game (+20 XP)"
+                                !uiState.quizCompleted -> "Kiểm tra (+20 XP)"
+                                else -> "Ôn tập bài học"
+                            }
+
+                            Button(
+                                onClick = { nextAction() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(26.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (uiState.isCompleted) LingoGreen else LingoBlue
                                 )
-                                Spacer(Modifier.width(8.dp))
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = buttonText,
+                                        fontSize = if (windowInfo.isCompact) 14.sp else 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -227,13 +242,18 @@ fun LessonScreen(
                 )
             }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
             ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .responsiveContentWidth(680.dp)
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(horizontal = if (windowInfo.isCompact) 12.dp else 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (windowInfo.isCompact) 12.dp else 16.dp)
+                ) {
                 item { Spacer(Modifier.height(8.dp)) }
 
                 // Lesson Header Card
@@ -310,7 +330,7 @@ fun LessonScreen(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 InfoChip(
                                     icon = Icons.Default.Schedule,
@@ -320,7 +340,7 @@ fun LessonScreen(
                                 InfoChip(
                                     icon = Icons.Default.Star,
                                     iconTint = Color(0xFFD97706),
-                                    text = if (uiState.isCompleted) "+${uiState.xpReward} XP (Đã nhận)" else "+${uiState.xpReward} XP khi hoàn thành"
+                                    text = if (uiState.isCompleted) "+${uiState.xpReward} XP (Đã nhận)" else "+${uiState.xpReward} XP"
                                 )
                             }
 
@@ -458,6 +478,7 @@ fun LessonScreen(
             }
         }
     }
+}
 }
 
 @Composable

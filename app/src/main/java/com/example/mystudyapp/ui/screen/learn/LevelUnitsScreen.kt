@@ -54,10 +54,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.viewmodel.LevelUnitsViewModel
 import com.example.mystudyapp.viewmodel.LevelUnitsViewModelFactory
@@ -71,6 +74,7 @@ fun LevelUnitsScreen(
     viewModel: LevelUnitsViewModel = viewModel(factory = LevelUnitsViewModelFactory(levelId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
 
     Scaffold(
         containerColor = Color(0xFFF8FAFF),
@@ -80,35 +84,43 @@ fun LevelUnitsScreen(
                 shadowElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFFF1F5F9),
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Row(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clickable { onBackClick() }
+                            .responsiveContentWidth(680.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = if (windowInfo.isCompact) 12.dp else 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.padding(8.dp),
-                            tint = Color(0xFF1E3A8A)
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier
+                                .size(if (windowInfo.isCompact) 36.dp else 40.dp)
+                                .clickable { onBackClick() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                modifier = Modifier.padding(8.dp),
+                                tint = Color(0xFF1E3A8A)
+                            )
+                        }
+
+                        Spacer(Modifier.width(if (windowInfo.isCompact) 10.dp else 16.dp))
+
+                        val rawTitle = uiState.level?.nameVi ?: uiState.level?.name ?: "Hành trình cấp độ"
+                        val cleanTitle = if (rawTitle.contains(":")) rawTitle.substringBefore(":").trim() else rawTitle
+                        Text(
+                            text = cleanTitle,
+                            fontSize = if (windowInfo.isCompact) 16.sp else 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E3A8A),
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.weight(1f)
                         )
                     }
-
-                    Spacer(Modifier.width(16.dp))
-
-                    Text(
-                        text = uiState.level?.nameVi ?: uiState.level?.name ?: "Hành trình cấp độ",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A8A)
-                    )
                 }
             }
         }
@@ -123,249 +135,263 @@ fun LevelUnitsScreen(
                 CircularProgressIndicator(color = LingoBlue)
             }
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // Header Banner: Adventure Map Header
-                item {
-                    EntranceWrapper(delayMillis = 100) {
-                        val level = uiState.level
-                        Surface(
-                            color = Color.White,
-                            shape = RoundedCornerShape(28.dp),
-                            shadowElevation = 2.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(Color(0xFFECFDF5), Color.White)
-                                        )
-                                    )
-                                    .padding(20.dp)
+                LazyColumn(
+                    modifier = Modifier
+                        .responsiveContentWidth(680.dp)
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentPadding = PaddingValues(if (windowInfo.isCompact) 12.dp else 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (windowInfo.isCompact) 12.dp else 16.dp)
+                ) {
+                    // Header Banner: Adventure Map Header
+                    item {
+                        EntranceWrapper(delayMillis = 100) {
+                            val level = uiState.level
+                            Surface(
+                                color = Color.White,
+                                shape = RoundedCornerShape(28.dp),
+                                shadowElevation = 2.dp,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Surface(
-                                    color = Color(0xFFA7F3D0),
-                                    shape = RoundedCornerShape(12.dp)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(Color(0xFFECFDF5), Color.White)
+                                            )
+                                        )
+                                        .padding(if (windowInfo.isCompact) 16.dp else 20.dp)
                                 ) {
+                                    Surface(
+                                        color = Color(0xFFA7F3D0),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text(
+                                            text = "CẤP ĐỘ ${level?.order ?: 1} · BẢN ĐỒ LỘ TRÌNH",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color(0xFF065F46),
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+
+                                    Spacer(Modifier.height(10.dp))
+
                                     Text(
-                                        text = "CẤP ĐỘ ${level?.order ?: 1} · BẢN ĐỒ LỘ TRÌNH",
-                                        fontSize = 11.sp,
+                                        text = level?.nameVi ?: level?.name ?: "Hành trình học tập",
+                                        fontSize = if (windowInfo.isCompact) 19.sp else 22.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF065F46),
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                        maxLines = 1,
-                                        softWrap = false
+                                        color = Color(0xFF1E3A8A)
                                     )
-                                }
 
-                                Spacer(Modifier.height(10.dp))
+                                    val lvlDesc = level?.descriptionVi ?: level?.description
+                                    if (!lvlDesc.isNullOrBlank()) {
+                                        Spacer(Modifier.height(6.dp))
+                                        Text(
+                                            text = lvlDesc,
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF475569),
+                                            lineHeight = 18.sp
+                                        )
+                                    }
 
-                                Text(
-                                    text = level?.nameVi ?: level?.name ?: "Hành trình học tập",
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF1E3A8A)
-                                )
+                                    Spacer(Modifier.height(12.dp))
 
-                                val lvlDesc = level?.descriptionVi ?: level?.description
-                                if (!lvlDesc.isNullOrBlank()) {
-                                    Spacer(Modifier.height(6.dp))
-                                    Text(
-                                        text = lvlDesc,
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF475569),
-                                        lineHeight = 18.sp
-                                    )
-                                }
-
-                                Spacer(Modifier.height(12.dp))
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Explore,
-                                        contentDescription = null,
-                                        tint = LingoBlue,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        text = "${uiState.units.size} bài học được kết nối",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = LingoBlue
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Explore,
+                                            contentDescription = null,
+                                            tint = LingoBlue,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = "${uiState.units.size} bài học được kết nối",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LingoBlue
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                item {
-                    Text(
-                        text = "Lộ trình học tập",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1E3A8A)
-                    )
-                }
-
-                // Illustrated Winding Journey Map
-                items(uiState.units.size) { index ->
-                    val unit = uiState.units[index]
-
-                    val topicIcon = when (index % 10) {
-                        0 -> Icons.Default.School
-                        1 -> Icons.Default.Explore
-                        2 -> Icons.Default.People
-                        3 -> Icons.Default.Schedule
-                        4 -> Icons.Default.Restaurant
-                        5 -> Icons.Default.ShoppingBag
-                        6 -> Icons.Default.Home
-                        7 -> Icons.Default.Place
-                        8 -> Icons.Default.FlightTakeoff
-                        else -> Icons.Default.Star
+                    item {
+                        Text(
+                            text = "Lộ trình học tập",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1E3A8A)
+                        )
                     }
 
-                    val cardBg = when (index % 4) {
-                        0 -> Color(0xFFEFF6FF)
-                        1 -> Color(0xFFECFDF5)
-                        2 -> Color(0xFFFEF3C7)
-                        else -> Color(0xFFF3E8FF)
-                    }
+                    // Illustrated Winding Journey Map
+                    items(uiState.units.size) { index ->
+                        val unit = uiState.units[index]
 
-                    EntranceWrapper(delayMillis = 200 + (index * 80)) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(IntrinsicSize.Min)
-                        ) {
-                            // Left Node / Path Timeline Column
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.width(48.dp)
+                        val topicIcon = when (index % 10) {
+                            0 -> Icons.Default.School
+                            1 -> Icons.Default.Explore
+                            2 -> Icons.Default.People
+                            3 -> Icons.Default.Schedule
+                            4 -> Icons.Default.Restaurant
+                            5 -> Icons.Default.ShoppingBag
+                            6 -> Icons.Default.Home
+                            7 -> Icons.Default.Place
+                            8 -> Icons.Default.FlightTakeoff
+                            else -> Icons.Default.Star
+                        }
+
+                        val cardBg = when (index % 4) {
+                            0 -> Color(0xFFEFF6FF)
+                            1 -> Color(0xFFECFDF5)
+                            2 -> Color(0xFFFEF3C7)
+                            else -> Color(0xFFF3E8FF)
+                        }
+
+                        EntranceWrapper(delayMillis = 200 + (index * 80)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(IntrinsicSize.Min)
                             ) {
-                                Surface(
-                                    color = LingoBlue,
-                                    shape = CircleShape,
-                                    modifier = Modifier.size(42.dp)
+                                // Left Node / Path Timeline Column
+                                val colWidth = if (windowInfo.isCompact) 38.dp else 48.dp
+                                val nodeSize = if (windowInfo.isCompact) 36.dp else 42.dp
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.width(colWidth)
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = "${unit.order}",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color.White
+                                    Surface(
+                                        color = LingoBlue,
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(nodeSize)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "${unit.order}",
+                                                fontSize = if (windowInfo.isCompact) 14.sp else 16.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+
+                                    if (index < uiState.units.size - 1) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(3.dp)
+                                                .fillMaxHeight()
+                                                .background(Color(0xFFCBD5E1))
                                         )
                                     }
                                 }
 
-                                if (index < uiState.units.size - 1) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(3.dp)
-                                            .fillMaxHeight()
-                                            .background(Color(0xFFCBD5E1))
-                                    )
-                                }
-                            }
+                                Spacer(Modifier.width(if (windowInfo.isCompact) 10.dp else 14.dp))
 
-                            Spacer(Modifier.width(14.dp))
-
-                            // Right Milestone Card
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(bottom = if (index < uiState.units.size - 1) 18.dp else 0.dp)
-                            ) {
-                                Surface(
-                                    color = cardBg,
-                                    shape = RoundedCornerShape(22.dp),
+                                // Right Milestone Card
+                                Column(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onSelectUnit(unit.id) }
+                                        .weight(1f)
+                                        .padding(bottom = if (index < uiState.units.size - 1) 18.dp else 0.dp)
                                 ) {
-                                    Column(modifier = Modifier.padding(18.dp)) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Surface(
-                                                color = Color.White.copy(alpha = 0.85f),
-                                                shape = RoundedCornerShape(10.dp)
+                                    Surface(
+                                        color = cardBg,
+                                        shape = RoundedCornerShape(22.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onSelectUnit(unit.id) }
+                                    ) {
+                                        Column(modifier = Modifier.padding(if (windowInfo.isCompact) 14.dp else 18.dp)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                modifier = Modifier.fillMaxWidth()
                                             ) {
-                                                Text(
-                                                    text = "BÀI HỌC ${unit.order}",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = Color(0xFF1E3A8A),
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                                    maxLines = 1,
-                                                    softWrap = false
-                                                )
-                                            }
-
-                                            Surface(
-                                                color = Color.White.copy(alpha = 0.85f),
-                                                shape = CircleShape,
-                                                modifier = Modifier.size(36.dp)
-                                            ) {
-                                                Box(contentAlignment = Alignment.Center) {
-                                                    Icon(
-                                                        imageVector = topicIcon,
-                                                        contentDescription = null,
-                                                        tint = LingoBlue,
-                                                        modifier = Modifier.size(20.dp)
+                                                Surface(
+                                                    color = Color.White.copy(alpha = 0.85f),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "BÀI HỌC ${unit.order}",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        color = Color(0xFF1E3A8A),
+                                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                        maxLines = 1,
+                                                        softWrap = false
                                                     )
                                                 }
+
+                                                Surface(
+                                                    color = Color.White.copy(alpha = 0.85f),
+                                                    shape = CircleShape,
+                                                    modifier = Modifier.size(if (windowInfo.isCompact) 32.dp else 36.dp)
+                                                ) {
+                                                    Box(contentAlignment = Alignment.Center) {
+                                                        Icon(
+                                                            imageVector = topicIcon,
+                                                            contentDescription = null,
+                                                            tint = LingoBlue,
+                                                            modifier = Modifier.size(if (windowInfo.isCompact) 18.dp else 20.dp)
+                                                        )
+                                                    }
+                                                }
                                             }
-                                        }
 
-                                        Spacer(Modifier.height(10.dp))
+                                            Spacer(Modifier.height(8.dp))
 
-                                        Text(
-                                            text = unit.titleVi ?: unit.title,
-                                            fontSize = 17.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF1E3A8A)
-                                        )
-
-                                        val uDesc = unit.descriptionVi ?: unit.description
-                                        if (uDesc.isNotBlank()) {
-                                            Spacer(Modifier.height(4.dp))
                                             Text(
-                                                text = uDesc,
-                                                fontSize = 13.sp,
-                                                color = Color(0xFF334155),
-                                                lineHeight = 18.sp
+                                                text = unit.titleVi ?: unit.title,
+                                                fontSize = if (windowInfo.isCompact) 15.5.sp else 17.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF1E3A8A)
                                             )
-                                        }
 
-                                        Spacer(Modifier.height(14.dp))
-
-                                        Button(
-                                            onClick = { onSelectUnit(unit.id) },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(44.dp),
-                                            shape = RoundedCornerShape(22.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text("Khám phá bài học", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                                Spacer(Modifier.width(6.dp))
-                                                Icon(
-                                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
+                                            val uDesc = unit.descriptionVi ?: unit.description
+                                            if (uDesc.isNotBlank()) {
+                                                Spacer(Modifier.height(4.dp))
+                                                Text(
+                                                    text = uDesc,
+                                                    fontSize = if (windowInfo.isCompact) 12.5.sp else 13.sp,
+                                                    color = Color(0xFF334155),
+                                                    lineHeight = 18.sp
                                                 )
+                                            }
+
+                                            Spacer(Modifier.height(12.dp))
+
+                                            Button(
+                                                onClick = { onSelectUnit(unit.id) },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(44.dp),
+                                                shape = RoundedCornerShape(22.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "Khám phá bài học",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        maxLines = 1,
+                                                        softWrap = false
+                                                    )
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }

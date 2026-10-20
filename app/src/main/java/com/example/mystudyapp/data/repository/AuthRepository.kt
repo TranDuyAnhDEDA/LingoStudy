@@ -11,4 +11,9 @@ interface AuthRepository {
     fun logout()
     fun getCurrentUser(): AuthUser?
     fun observeAuthState(): Flow<AuthUser?>
+
+    // Xác thực địa chỉ Email qua Firebase
+    suspend fun sendEmailVerification(): Result<Unit> = Result.success(Unit)
+    suspend fun reloadUser(): Result<AuthUser?> = Result.success(getCurrentUser())
+    fun isEmailVerified(): Boolean = getCurrentUser()?.isEmailVerified ?: false
 }

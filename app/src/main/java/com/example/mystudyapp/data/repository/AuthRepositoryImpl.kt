@@ -52,6 +52,14 @@ class AuthRepositoryImpl(
                 firebaseUser.updateProfile(profileUpdates).await()
             }
 
+            // Gửi email xác thực từ Firebase đến Gmail của người dùng
+            try {
+                firebaseUser.sendEmailVerification().await()
+            } catch (e: Exception) {
+                // Tiếp tục ngay cả khi gửi mail ban đầu gặp trục trặc mạng tạm thời,
+                // người dùng có thể bấm "Gửi lại" trên màn hình VerifyEmailScreen
+            }
+
             val updatedUser = firebaseAuth.currentUser ?: firebaseUser
             Result.success(updatedUser.toAuthUser())
         } catch (e: Exception) {
@@ -89,11 +97,38 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun sendEmailVerification(): Result<Unit> {
+        return try {
+            val user = firebaseAuth.currentUser
+                ?: return Result.failure(Exception("Người dùng chưa đăng nhập."))
+            user.sendEmailVerification().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception(mapAuthException(e)))
+        }
+    }
+
+    override suspend fun reloadUser(): Result<AuthUser?> {
+        return try {
+            val user = firebaseAuth.currentUser ?: return Result.success(null)
+            user.reload().await()
+            val reloadedUser = firebaseAuth.currentUser ?: user
+            Result.success(reloadedUser.toAuthUser())
+        } catch (e: Exception) {
+            Result.failure(Exception(mapAuthException(e)))
+        }
+    }
+
+    override fun isEmailVerified(): Boolean {
+        return firebaseAuth.currentUser?.isEmailVerified == true
+    }
+
     private fun FirebaseUser.toAuthUser(): AuthUser {
         return AuthUser(
             uid = uid,
             email = email,
-            displayName = displayName
+            displayName = displayName,
+            isEmailVerified = isEmailVerified
         )
     }
 

@@ -214,11 +214,20 @@ class ProfileFeatureTest {
     fun testLearningHistoryInProfile() {
         val testUser = AuthUser(uid = "user_123", email = "alex@example.com", displayName = "Alex Learner")
         val fakeAuth = FakeAuthRepo(testUser)
+        val mockHistory = listOf(
+            LessonProgress(
+                lessonId = "lesson_b1_1_1",
+                completed = true,
+                progress = 100,
+                vocabularyCompleted = true,
+                grammarCompleted = true
+            )
+        )
 
         val viewModel = ProfileViewModel(
             authRepository = fakeAuth,
             userRepository = FakeUserRepo(),
-            progressRepository = FakeProgressRepo(),
+            progressRepository = FakeProgressRepo(historyList = mockHistory),
             learningRepository = FakeLearningRepo()
         )
         testDispatcher.scheduler.advanceUntilIdle()
@@ -297,7 +306,8 @@ class ProfileFeatureTest {
     class FakeProgressRepo(
         private val progress: UserProgress? = null,
         private val dailyList: List<DailyStudyTime> = emptyList(),
-        private val totalSeconds: Long = 0L
+        private val totalSeconds: Long = 0L,
+        private val historyList: List<LessonProgress> = emptyList()
     ) : ProgressRepository {
         override fun getUserProgress(uid: String) = flowOf(Result.success(progress))
         override suspend fun createUserProgress(progress: UserProgress) = Result.success(kotlin.Unit)
@@ -325,6 +335,7 @@ class ProfileFeatureTest {
             return flowOf(Result.success(full7Days))
         }
         override fun getAllTimeStudyTime(uid: String) = flowOf(Result.success(totalSeconds))
+        override fun getLearningHistory(uid: String) = flowOf(Result.success(historyList))
     }
 
     class FakeLearningRepo(

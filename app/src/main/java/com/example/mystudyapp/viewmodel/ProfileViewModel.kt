@@ -60,8 +60,8 @@ data class ProfileUiState(
     val progress: UserProgress? = null,
     val isUpdatingName: Boolean = false,
     val currentLevelName: String = "Beginner 1: Nền tảng & Giao tiếp",
-    val currentXp: Int = 30,
-    val currentLevelXp: Int = 30,
+    val currentXp: Int = 0,
+    val currentLevelXp: Int = 0,
     val requiredXp: Int = 200,
     val nextLevelThresholdXp: Int = 200,
     val vocabMasteryPct: Int = 0,
@@ -75,7 +75,7 @@ data class ProfileUiState(
     val unfinishedProgressPct: Int = 0,
     val resumeRoute: String? = null,
     val todayStudyMinutes: Int = 0,
-    val totalStudyMinutes: Int = 113,
+    val totalStudyMinutes: Int = 0,
     val last7DaysChart: List<DailyChartBar> = emptyList(),
     val learningHistory: List<LearningHistoryItem> = emptyList(),
     val favoriteWords: List<String> = emptyList(),
@@ -134,15 +134,15 @@ class ProfileViewModel(
                         val totalSecs = totalTimeResult.getOrNull() ?: 0L
                         val historyList = historyResult.getOrNull() ?: emptyList()
 
-                        // Resolved profile with intelligent defaults matching reference image if empty
+                        // Resolved profile using authenticated user's actual info or defaults if not found
                         val effectiveProfile = rawProfile ?: UserProfile(
                             uid = uid,
-                            displayName = user.displayName?.ifBlank { "Nguyễn Minh Anh" } ?: "Nguyễn Minh Anh",
-                            email = user.email?.ifBlank { "minhanh@gmail.com" } ?: "minhanh@gmail.com",
-                            xp = 30,
-                            streak = 2,
+                            displayName = user.displayName?.ifBlank { "Bạn học viên" } ?: "Bạn học viên",
+                            email = user.email.orEmpty(),
+                            xp = 0,
+                            streak = 0,
                             avatarId = "boy_hoodie",
-                            totalLessonsCompleted = 1
+                            totalLessonsCompleted = 0
                         )
 
                         val currentLessonId = progress?.currentLessonId ?: "lesson_b1_1_1"
@@ -171,10 +171,7 @@ class ProfileViewModel(
 
                         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                         val todayStr = sdf.format(Calendar.getInstance().time)
-                        val effectiveTotalMins = if (totalSecs > 0) (totalSecs / 60).toInt() else 113
-
-                        val hasRealStudyTime = studyList.any { it.totalSeconds > 0L }
-                        val fallbackSampleMins = listOf(15, 20, 10, 25, 15, 10, 18)
+                        val effectiveTotalMins = (totalSecs / 60).toInt()
 
                         val chartBars = studyList.mapIndexed { index, daily ->
                             val date = try { sdf.parse(daily.date) } catch (e: Exception) { null }
@@ -200,13 +197,7 @@ class ProfileViewModel(
                                 SimpleDateFormat("dd/MM", Locale.getDefault()).format(date)
                             } else ""
 
-                            val mins = if (hasRealStudyTime) {
-                                (daily.totalSeconds / 60).toInt()
-                            } else if (effectiveTotalMins > 0) {
-                                fallbackSampleMins.getOrElse(index % fallbackSampleMins.size) { 15 }
-                            } else {
-                                0
-                            }
+                            val mins = (daily.totalSeconds / 60).toInt()
 
                             DailyChartBar(
                                 dayLabel = vietnameseDay,
@@ -219,86 +210,54 @@ class ProfileViewModel(
 
                         val todayMins = (studyList.firstOrNull { it.date == todayStr }?.totalSeconds ?: 0L) / 60
 
-                        // Construct learning history items
+                        // Construct learning history items from actual user progress
                         val timeFormat = SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale.getDefault())
-                        val items: List<LearningHistoryItem> = if (historyList.isNotEmpty()) {
-                            historyList.map { lp ->
-                                val l = learningRepository.getLesson(lp.lessonId).firstOrNull()?.getOrNull()
-                                val u = if (l?.unitId != null) learningRepository.getUnit(l.unitId).firstOrNull()?.getOrNull() else null
-                                val completedTime = lp.lastAccessedAt?.toDate()
-                                val timeText = if (completedTime != null) timeFormat.format(completedTime) else "Gần đây"
-                                LearningHistoryItem(
-                                    lessonId = lp.lessonId,
-                                    title = l?.titleVi ?: l?.title ?: "Bài học: Chào hỏi & Giới thiệu",
-                                    unitTitle = u?.titleVi ?: u?.title ?: "Unit 1: Chào hỏi cơ bản",
-                                    progressPct = if (lp.completed) 100 else lp.progress,
-                                    isCompleted = lp.completed,
-                                    completedAtText = timeText,
-                                    vocabDone = lp.vocabularyCompleted,
-                                    grammarDone = lp.grammarCompleted,
-                                    listeningDone = lp.listeningCompleted,
-                                    pronunDone = lp.pronunciationCompleted,
-                                    quizDone = lp.quizCompleted
-                                )
-                            }
-                        } else {
-                            // High quality curated default history items so user immediately sees rich, functional data
-                            listOf(
-                                LearningHistoryItem(
-                                    lessonId = "lesson_b1_1_1",
-                                    title = "Bài 1: Chào hỏi & Giới thiệu (Saying Hello & Goodbye)",
-                                    unitTitle = "Unit 1: Giao tiếp khởi đầu",
-                                    progressPct = 100,
-                                    isCompleted = true,
-                                    completedAtText = "Hôm nay, 14:30",
-                                    vocabDone = true,
-                                    grammarDone = true,
-                                    listeningDone = true,
-                                    pronunDone = true,
-                                    quizDone = true
-                                ),
-                                LearningHistoryItem(
-                                    lessonId = "lesson_b1_1_2",
-                                    title = "Bài 2: Tự giới thiệu bản thân (Introducing Yourself)",
-                                    unitTitle = "Unit 1: Giao tiếp khởi đầu",
-                                    progressPct = 50,
-                                    isCompleted = false,
-                                    completedAtText = "Đang học dở",
-                                    vocabDone = true,
-                                    grammarDone = true,
-                                    listeningDone = false,
-                                    pronunDone = false,
-                                    quizDone = false
-                                )
+                        val items: List<LearningHistoryItem> = historyList.map { lp ->
+                            val l = learningRepository.getLesson(lp.lessonId).firstOrNull()?.getOrNull()
+                            val u = if (l?.unitId != null) learningRepository.getUnit(l.unitId).firstOrNull()?.getOrNull() else null
+                            val completedTime = lp.lastAccessedAt?.toDate()
+                            val timeText = if (completedTime != null) timeFormat.format(completedTime) else "Gần đây"
+                            LearningHistoryItem(
+                                lessonId = lp.lessonId,
+                                title = l?.titleVi ?: l?.title ?: "Bài học",
+                                unitTitle = u?.titleVi ?: u?.title ?: "Unit",
+                                progressPct = if (lp.completed) 100 else lp.progress,
+                                isCompleted = lp.completed,
+                                completedAtText = timeText,
+                                vocabDone = lp.vocabularyCompleted,
+                                grammarDone = lp.grammarCompleted,
+                                listeningDone = lp.listeningCompleted,
+                                pronunDone = lp.pronunciationCompleted,
+                                quizDone = lp.quizCompleted
                             )
                         }
 
                         val favs = dictionaryStore.getFavoriteWords().toList()
 
-                            val levelInfo = UserLevelCalculator.calculate(
-                                effectiveProfile.xp,
-                                matchedLevel?.nameVi ?: matchedLevel?.name ?: effectiveProfile.levelName.ifBlank { null }
-                            )
-                            ProfileUiState(
-                                isLoading = false,
-                                isAuthenticated = true,
-                                errorMessage = null,
-                                profile = effectiveProfile,
-                                progress = progress,
-                                currentLevelName = levelInfo.levelName,
-                                currentXp = if (effectiveProfile.xp > 0) effectiveProfile.xp else 30,
-                                currentLevelXp = levelInfo.currentLevelXp,
-                                requiredXp = levelInfo.levelRequiredXp,
-                                nextLevelThresholdXp = levelInfo.nextLevelThresholdXp,
-                            vocabMasteryPct = progress?.vocabularyProgress ?: 40,
-                            grammarMasteryPct = progress?.grammarProgress ?: 35,
-                            listeningMasteryPct = progress?.listeningProgress ?: 25,
-                            pronunMasteryPct = progress?.pronunciationProgress ?: 30,
-                            quizMasteryPct = if ((progress?.completedLessons ?: 1) > 0) 100 else 0,
-                            unfinishedLessonId = currentLessonId,
-                            unfinishedLessonTitle = lesson?.titleVi ?: lesson?.title ?: "Bài 2: Tự giới thiệu bản thân",
-                            unfinishedUnitTitle = unit?.titleVi ?: unit?.title ?: "Unit 1: Chào hỏi & Giới thiệu",
-                            unfinishedProgressPct = lessonProgress?.progress ?: 50,
+                        val levelInfo = UserLevelCalculator.calculate(
+                            effectiveProfile.xp,
+                            matchedLevel?.nameVi ?: matchedLevel?.name ?: effectiveProfile.levelName.ifBlank { null }
+                        )
+                        ProfileUiState(
+                            isLoading = false,
+                            isAuthenticated = true,
+                            errorMessage = null,
+                            profile = effectiveProfile,
+                            progress = progress,
+                            currentLevelName = levelInfo.levelName,
+                            currentXp = effectiveProfile.xp,
+                            currentLevelXp = levelInfo.currentLevelXp,
+                            requiredXp = levelInfo.levelRequiredXp,
+                            nextLevelThresholdXp = levelInfo.nextLevelThresholdXp,
+                            vocabMasteryPct = progress?.vocabularyProgress ?: 0,
+                            grammarMasteryPct = progress?.grammarProgress ?: 0,
+                            listeningMasteryPct = progress?.listeningProgress ?: 0,
+                            pronunMasteryPct = progress?.pronunciationProgress ?: 0,
+                            quizMasteryPct = if ((progress?.completedLessons ?: 0) > 0) 100 else 0,
+                            unfinishedLessonId = if (progress != null && progress.completedLessons > 0) currentLessonId else null,
+                            unfinishedLessonTitle = if (lesson != null && progress != null && progress.completedLessons > 0) (lesson.titleVi ?: lesson.title) else null,
+                            unfinishedUnitTitle = if (unit != null && progress != null && progress.completedLessons > 0) (unit.titleVi ?: unit.title) else null,
+                            unfinishedProgressPct = lessonProgress?.progress ?: 0,
                             resumeRoute = calculatedResumeRoute,
                             todayStudyMinutes = todayMins.toInt(),
                             totalStudyMinutes = effectiveTotalMins,

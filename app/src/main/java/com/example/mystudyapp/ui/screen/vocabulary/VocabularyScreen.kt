@@ -73,6 +73,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.ActiveStudyTimeTracker
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.viewmodel.VocabularyUiModel
 import com.example.mystudyapp.viewmodel.VocabularyViewModel
 import com.example.mystudyapp.viewmodel.VocabularyViewModelFactory
@@ -85,6 +87,7 @@ fun VocabularyScreen(
     viewModel: VocabularyViewModel = viewModel(factory = VocabularyViewModelFactory(lessonId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
     val context = LocalContext.current
 
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
@@ -226,33 +229,36 @@ fun VocabularyScreen(
                         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
+                            .responsiveContentWidth(500.dp)
                             .padding(16.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(28.dp),
+                            modifier = Modifier
+                                .verticalScroll(rememberScrollState())
+                                .padding(if (windowInfo.isCompact) 20.dp else 28.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Sparkling Star / Celebration Icon
                             Surface(
                                 shape = CircleShape,
                                 color = Color(0xFFEBF5FF),
-                                modifier = Modifier.size(96.dp)
+                                modifier = Modifier.size(if (windowInfo.isCompact) 76.dp else 96.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
                                         tint = Color(0xFF2563EB),
-                                        modifier = Modifier.size(56.dp)
+                                        modifier = Modifier.size(if (windowInfo.isCompact) 44.dp else 56.dp)
                                     )
                                 }
                             }
 
-                            Spacer(Modifier.height(20.dp))
+                            Spacer(Modifier.height(16.dp))
 
                             Text(
                                 text = "Hoàn thành ${uiState.vocabularyList.size}/${uiState.vocabularyList.size} Từ vựng!",
-                                fontSize = 22.sp,
+                                fontSize = if (windowInfo.isCompact) 19.sp else 22.sp,
                                 fontWeight = FontWeight.Black,
                                 color = Color(0xFF1E3A8A),
                                 textAlign = TextAlign.Center
@@ -262,24 +268,24 @@ fun VocabularyScreen(
 
                             Text(
                                 text = "Bé đã xem đủ tất cả flashcard từ vựng của bài học này và ghi nhớ thật tốt!",
-                                fontSize = 14.sp,
+                                fontSize = if (windowInfo.isCompact) 13.sp else 14.sp,
                                 color = Color(0xFF64748B),
                                 textAlign = TextAlign.Center,
-                                lineHeight = 20.sp
+                                lineHeight = 19.sp
                             )
 
-                            Spacer(Modifier.height(28.dp))
+                            Spacer(Modifier.height(22.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Button(
                                     onClick = { viewModel.restartReview() },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(50.dp),
-                                    shape = RoundedCornerShape(25.dp),
+                                        .height(48.dp),
+                                    shape = RoundedCornerShape(24.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFFEBF5FF),
                                         contentColor = Color(0xFF1D4ED8)
@@ -291,11 +297,13 @@ fun VocabularyScreen(
                                             contentDescription = null,
                                             modifier = Modifier.size(16.dp)
                                         )
-                                        Spacer(Modifier.width(6.dp))
+                                        Spacer(Modifier.width(4.dp))
                                         Text(
                                             text = "Ôn lại",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold
+                                            fontSize = if (windowInfo.isCompact) 13.sp else 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false
                                         )
                                     }
                                 }
@@ -304,8 +312,8 @@ fun VocabularyScreen(
                                     onClick = { onBackToLesson() },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(50.dp),
-                                    shape = RoundedCornerShape(25.dp),
+                                        .height(48.dp),
+                                    shape = RoundedCornerShape(24.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFF2563EB),
                                         contentColor = Color.White
@@ -313,8 +321,10 @@ fun VocabularyScreen(
                                 ) {
                                     Text(
                                         text = "Về bài học",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontSize = if (windowInfo.isCompact) 13.sp else 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -338,233 +348,263 @@ fun VocabularyScreen(
                         label = "flashcard_3d_flip"
                     )
 
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(innerPadding)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.SpaceBetween,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.TopCenter
                     ) {
-                        // 1. TOP HEADER BAR
-                        FlashcardHeader(
-                            unitLabel = uiState.unitLabel,
-                            lessonTitle = uiState.lessonTitle,
-                            currentIndex = uiState.currentIndex,
-                            totalCount = uiState.vocabularyList.size,
-                            onBack = onBackToLesson
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        // 2. FLASHCARD DECK (STACK OF CARDS + MAIN CARD)
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f, fill = false)
-                                .heightIn(min = 360.dp, max = 460.dp)
-                                .padding(horizontal = 8.dp),
-                            contentAlignment = Alignment.Center
+                                .fillMaxSize()
+                                .responsiveContentWidth(540.dp)
+                                .then(
+                                    if (windowInfo.isShortScreen) Modifier.verticalScroll(rememberScrollState())
+                                    else Modifier
+                                )
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.SpaceBetween,
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Layered Deck Effect: Background Card 3 (furthest back, tilted left)
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.92f)
-                                    .fillMaxHeight(0.94f)
-                                    .graphicsLayer {
-                                        this.rotationZ = -5.5f
-                                        this.translationY = 8f
-                                    },
-                                shape = RoundedCornerShape(32.dp),
-                                color = Color(0x99FFFFFF),
-                                border = BorderStroke(1.dp, Color(0xFFD6EEFF))
-                            ) {}
+                            // 1. TOP HEADER BAR
+                            FlashcardHeader(
+                                unitLabel = uiState.unitLabel,
+                                lessonTitle = uiState.lessonTitle,
+                                currentIndex = uiState.currentIndex,
+                                totalCount = uiState.vocabularyList.size,
+                                onBack = onBackToLesson
+                            )
 
-                            // Layered Deck Effect: Background Card 2 (middle back, tilted right)
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.94f)
-                                    .fillMaxHeight(0.97f)
-                                    .graphicsLayer {
-                                        this.rotationZ = 5.5f
-                                        this.translationY = 4f
-                                    },
-                                shape = RoundedCornerShape(32.dp),
-                                color = Color(0xCCFFFFFF),
-                                border = BorderStroke(1.dp, Color(0xFFD6EEFF))
-                            ) {}
+                            Spacer(Modifier.height(8.dp))
 
-                            // Foreground Main Card with 3D Flip
-                            Surface(
+                            // 2. FLASHCARD DECK (STACK OF CARDS + MAIN CARD)
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.96f)
-                                    .fillMaxHeight()
-                                    .graphicsLayer {
-                                        this.rotationY = rotationY
-                                        this.cameraDistance = 16f * density
-                                    }
-                                    .clickable { isFlipped = !isFlipped },
-                                shape = RoundedCornerShape(32.dp),
-                                color = Color.White,
-                                shadowElevation = 8.dp,
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                            ) {
-                                if (rotationY <= 90f) {
-                                    // ----------------------------------------
-                                    // FRONT FACE
-                                    // ----------------------------------------
-                                    FlashcardFrontFace(
-                                        vocab = currentVocab,
-                                        onPlayAudio = { speakWord(currentVocab.word) }
+                                    .fillMaxWidth()
+                                    .weight(1f, fill = false)
+                                    .heightIn(
+                                        min = if (windowInfo.isShortScreen) 270.dp else if (windowInfo.isCompact) 310.dp else 360.dp,
+                                        max = 460.dp
                                     )
-                                } else {
-                                    // ----------------------------------------
-                                    // BACK FACE (Rotated 180deg to avoid mirroring)
-                                    // ----------------------------------------
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer { this.rotationY = 180f }
-                                    ) {
-                                        FlashcardBackFace(
+                                    .padding(horizontal = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                // Layered Deck Effect: Background Card 3 (furthest back, tilted left)
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.92f)
+                                        .fillMaxHeight(0.94f)
+                                        .graphicsLayer {
+                                            this.rotationZ = -5.5f
+                                            this.translationY = 8f
+                                        },
+                                    shape = RoundedCornerShape(32.dp),
+                                    color = Color(0x99FFFFFF),
+                                    border = BorderStroke(1.dp, Color(0xFFD6EEFF))
+                                ) {}
+
+                                // Layered Deck Effect: Background Card 2 (middle back, tilted right)
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.94f)
+                                        .fillMaxHeight(0.97f)
+                                        .graphicsLayer {
+                                            this.rotationZ = 5.5f
+                                            this.translationY = 4f
+                                        },
+                                    shape = RoundedCornerShape(32.dp),
+                                    color = Color(0xCCFFFFFF),
+                                    border = BorderStroke(1.dp, Color(0xFFD6EEFF))
+                                ) {}
+
+                                // Foreground Main Card with 3D Flip
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.96f)
+                                        .fillMaxHeight()
+                                        .graphicsLayer {
+                                            this.rotationY = rotationY
+                                            this.cameraDistance = 16f * density
+                                        }
+                                        .clickable { isFlipped = !isFlipped },
+                                    shape = RoundedCornerShape(32.dp),
+                                    color = Color.White,
+                                    shadowElevation = 8.dp,
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                                ) {
+                                    if (rotationY <= 90f) {
+                                        // ----------------------------------------
+                                        // FRONT FACE
+                                        // ----------------------------------------
+                                        FlashcardFrontFace(
                                             vocab = currentVocab,
+                                            isCompact = windowInfo.isCompact,
+                                            isShortScreen = windowInfo.isShortScreen,
                                             onPlayAudio = { speakWord(currentVocab.word) }
                                         )
+                                    } else {
+                                        // ----------------------------------------
+                                        // BACK FACE (Rotated 180deg to avoid mirroring)
+                                        // ----------------------------------------
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer { this.rotationY = 180f }
+                                        ) {
+                                            FlashcardBackFace(
+                                                vocab = currentVocab,
+                                                onPlayAudio = { speakWord(currentVocab.word) }
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(10.dp))
 
-                        // 3. PROGRESS DOTS
-                        ProgressDotsRow(
-                            total = uiState.vocabularyList.size,
-                            currentIndex = uiState.currentIndex
-                        )
+                            // 3. PROGRESS DOTS
+                            ProgressDotsRow(
+                                total = uiState.vocabularyList.size,
+                                currentIndex = uiState.currentIndex
+                            )
 
-                        Spacer(Modifier.height(14.dp))
+                            Spacer(Modifier.height(12.dp))
 
-                        // 4. NAVIGATION BUTTONS (Thẻ trước & Thẻ tiếp theo)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            // Prev Button
-                            val isFirst = uiState.currentIndex == 0
-                            Button(
-                                onClick = {
-                                    if (!isFirst) {
-                                        viewModel.previousVocabulary()
-                                        isFlipped = false
-                                    }
-                                },
-                                enabled = !isFirst,
+                            // 4. NAVIGATION BUTTONS (Thẻ trước & Thẻ tiếp theo)
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(24.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFDCEEFE),
-                                    contentColor = Color(0xFF1D4ED8),
-                                    disabledContainerColor = Color(0x66DCEEFE),
-                                    disabledContentColor = Color(0x661D4ED8)
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                // Prev Button
+                                val isFirst = uiState.currentIndex == 0
+                                Button(
+                                    onClick = {
+                                        if (!isFirst) {
+                                            viewModel.previousVocabulary()
+                                            isFlipped = false
+                                        }
+                                    },
+                                    enabled = !isFirst,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
+                                    shape = RoundedCornerShape(24.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFDCEEFE),
+                                        contentColor = Color(0xFF1D4ED8),
+                                        disabledContainerColor = Color(0x66DCEEFE),
+                                        disabledContentColor = Color(0x661D4ED8)
+                                    ),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            text = "Thẻ trước",
+                                            fontSize = if (windowInfo.isCompact) 12.5.sp else 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
+                                }
+
+                                // Next Button
+                                val isLast = uiState.currentIndex == uiState.vocabularyList.lastIndex
+                                Button(
+                                    onClick = {
+                                        viewModel.nextVocabulary()
+                                        isFlipped = false
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
+                                    shape = RoundedCornerShape(24.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isLast) Color(0xFF2563EB) else Color(0xFFDCEEFE),
+                                        contentColor = if (isLast) Color.White else Color(0xFF1D4ED8)
+                                    ),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = if (isLast) 2.dp else 0.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        if (isLast) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                        }
+                                        Text(
+                                            text = if (isLast) "Hoàn thành" else "Tiếp theo",
+                                            fontSize = if (windowInfo.isCompact) 12.5.sp else 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                        if (!isLast) {
+                                            Spacer(Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(10.dp))
+
+                            // 5. FLIP CARD BUTTON (Lật thẻ xem nghĩa)
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                color = Color.White,
+                                shadowElevation = 3.dp,
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                modifier = Modifier
+                                    .clickable { isFlipped = !isFlipped }
+                                    .height(46.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = if (windowInfo.isCompact) 16.dp else 22.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        imageVector = Icons.Default.Refresh,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        tint = Color(0xFF2563EB),
+                                        modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        text = "Thẻ trước",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
+                                        text = if (isFlipped) "Lật lại mặt trước" else "Lật thẻ xem nghĩa",
+                                        fontSize = if (windowInfo.isCompact) 13.sp else 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2563EB),
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
 
-                            // Next Button
-                            val isLast = uiState.currentIndex == uiState.vocabularyList.lastIndex
-                            Button(
-                                onClick = {
-                                    viewModel.nextVocabulary()
-                                    isFlipped = false
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(24.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isLast) Color(0xFF2563EB) else Color(0xFFDCEEFE),
-                                    contentColor = if (isLast) Color.White else Color(0xFF1D4ED8)
-                                ),
-                                elevation = ButtonDefaults.buttonElevation(defaultElevation = if (isLast) 2.dp else 0.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (isLast) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(Modifier.width(6.dp))
-                                    }
-                                    Text(
-                                        text = if (isLast) "Hoàn thành" else "Thẻ tiếp theo",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    if (!isLast) {
-                                        Spacer(Modifier.width(6.dp))
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                            }
+                            Spacer(Modifier.height(8.dp))
                         }
-
-                        Spacer(Modifier.height(10.dp))
-
-                        // 5. FLIP CARD BUTTON (Lật thẻ xem nghĩa)
-                        Surface(
-                            shape = RoundedCornerShape(24.dp),
-                            color = Color.White,
-                            shadowElevation = 3.dp,
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier
-                                .clickable { isFlipped = !isFlipped }
-                                .height(46.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 22.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = null,
-                                    tint = Color(0xFF2563EB),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = if (isFlipped) "Lật lại mặt trước" else "Lật thẻ xem nghĩa",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2563EB)
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.height(8.dp))
                     }
                 }
             }
@@ -583,6 +623,7 @@ private fun FlashcardHeader(
     totalCount: Int,
     onBack: () -> Unit
 ) {
+    val windowInfo = rememberWindowInfo()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -633,11 +674,11 @@ private fun FlashcardHeader(
 
             Text(
                 text = lessonTitle,
-                fontSize = 16.sp,
+                fontSize = if (windowInfo.isCompact) 14.sp else 16.sp,
+                lineHeight = if (windowInfo.isCompact) 18.sp else 20.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF1E3A8A),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 2
             )
         }
 
@@ -677,19 +718,27 @@ private fun FlashcardHeader(
 @Composable
 private fun FlashcardFrontFace(
     vocab: VocabularyUiModel,
+    isCompact: Boolean = false,
+    isShortScreen: Boolean = false,
     onPlayAudio: () -> Unit
 ) {
+    val plateSize = if (isCompact || isShortScreen) 118.dp else 150.dp
+    val boxSize = if (isCompact || isShortScreen) 132.dp else 175.dp
+    val mascotSize = if (isCompact || isShortScreen) 70.dp else 90.dp
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(
+                horizontal = if (isCompact) 14.dp else 20.dp,
+                vertical = if (isCompact || isShortScreen) 12.dp else 18.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         // Top Illustration in Circle Badge with yellow rays
         Box(
-            modifier = Modifier
-                .size(175.dp),
+            modifier = Modifier.size(boxSize),
             contentAlignment = Alignment.Center
         ) {
             // Yellow accent sparkle rays in top-left
@@ -698,26 +747,23 @@ private fun FlashcardFrontFace(
                 val cy = size.height * 0.22f
                 val rayColor = Color(0xFFFBBF24)
 
-                // Ray 1
                 drawLine(
                     color = rayColor,
-                    start = Offset(cx - 18f, cy - 24f),
-                    end = Offset(cx - 30f, cy - 36f),
-                    strokeWidth = 6f
+                    start = Offset(cx - 14f, cy - 18f),
+                    end = Offset(cx - 24f, cy - 28f),
+                    strokeWidth = 5f
                 )
-                // Ray 2
                 drawLine(
                     color = rayColor,
-                    start = Offset(cx - 6f, cy - 28f),
-                    end = Offset(cx - 10f, cy - 44f),
-                    strokeWidth = 6f
+                    start = Offset(cx - 5f, cy - 22f),
+                    end = Offset(cx - 8f, cy - 35f),
+                    strokeWidth = 5f
                 )
-                // Ray 3
                 drawLine(
                     color = rayColor,
-                    start = Offset(cx - 28f, cy - 10f),
-                    end = Offset(cx - 44f, cy - 14f),
-                    strokeWidth = 6f
+                    start = Offset(cx - 22f, cy - 8f),
+                    end = Offset(cx - 35f, cy - 11f),
+                    strokeWidth = 5f
                 )
             }
 
@@ -725,12 +771,12 @@ private fun FlashcardFrontFace(
             Surface(
                 shape = CircleShape,
                 color = Color(0xFFE8F4FF),
-                modifier = Modifier.size(150.dp)
+                modifier = Modifier.size(plateSize)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     VocabularyIllustrationView(
                         word = vocab.word,
-                        modifier = Modifier.size(90.dp)
+                        modifier = Modifier.size(mascotSize)
                     )
                 }
             }
@@ -740,17 +786,19 @@ private fun FlashcardFrontFace(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = vocab.word.lowercase(),
-                fontSize = if (vocab.word.length > 9) 30.sp else if (vocab.word.length > 6) 32.sp else 36.sp,
+                fontSize = if (vocab.word.length > 9) (if (isCompact) 26.sp else 30.sp)
+                else if (vocab.word.length > 6) (if (isCompact) 28.sp else 32.sp)
+                else (if (isCompact) 32.sp else 36.sp),
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF15489C),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(2.dp))
 
             Text(
                 text = vocab.phonetic,
-                fontSize = 17.sp,
+                fontSize = if (isCompact) 15.sp else 17.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF64748B)
             )
@@ -761,7 +809,7 @@ private fun FlashcardFrontFace(
             shape = CircleShape,
             color = Color(0xFFE1F0FF),
             modifier = Modifier
-                .size(48.dp)
+                .size(if (isCompact) 42.dp else 48.dp)
                 .clickable { onPlayAudio() }
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -769,7 +817,7 @@ private fun FlashcardFrontFace(
                     imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                     contentDescription = "Phát âm",
                     tint = Color(0xFF2563EB),
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
                 )
             }
         }
@@ -779,19 +827,19 @@ private fun FlashcardFrontFace(
             shape = RoundedCornerShape(22.dp),
             color = Color(0xFFE3F2FD),
             modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .height(44.dp)
+                .fillMaxWidth(if (isCompact) 0.95f else 0.85f)
+                .heightIn(min = if (isCompact) 38.dp else 42.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 4.dp)) {
                 Text(
                     text = vocab.meaningVi ?: vocab.meaning,
-                    fontSize = 17.sp,
+                    fontSize = if (isCompact) 14.sp else 16.5.sp,
+                    lineHeight = if (isCompact) 18.sp else 21.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1976D2),
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 12.dp)
+                    maxLines = 2,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
                 )
             }
         }
@@ -809,6 +857,7 @@ private fun FlashcardBackFace(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 22.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
@@ -952,25 +1001,45 @@ private fun ProgressDotsRow(
     total: Int,
     currentIndex: Int
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        for (i in 0 until total) {
-            val isActive = (i == currentIndex)
-            val dotWidth by animateDpAsState(
-                targetValue = if (isActive) 18.dp else 7.dp,
-                animationSpec = tween(durationMillis = 250),
-                label = "progress_dot_width"
-            )
-            val dotColor = if (isActive) Color(0xFF2563EB) else Color(0xFFBFDBFE)
-
-            Box(
+    if (total > 10) {
+        // Compact linear indicator for larger decks
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { (currentIndex + 1).toFloat() / total.toFloat() },
                 modifier = Modifier
-                    .size(width = dotWidth, height = 7.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(dotColor)
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                color = Color(0xFF2563EB),
+                trackColor = Color(0xFFBFDBFE)
             )
+        }
+    } else {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            for (i in 0 until total) {
+                val isActive = (i == currentIndex)
+                val dotWidth by animateDpAsState(
+                    targetValue = if (isActive) 18.dp else 7.dp,
+                    animationSpec = tween(durationMillis = 250),
+                    label = "progress_dot_width"
+                )
+                val dotColor = if (isActive) Color(0xFF2563EB) else Color(0xFFBFDBFE)
+
+                Box(
+                    modifier = Modifier
+                        .size(width = dotWidth, height = 7.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(dotColor)
+                )
+            }
         }
     }
 }

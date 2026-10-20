@@ -94,6 +94,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.MascotExpression
 import com.example.mystudyapp.ui.component.MascotView
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.ui.screen.profile.LingoAvatarDisplay
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.ui.theme.LingoGray
@@ -109,6 +111,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModelFactory())
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
     var selectedNav by remember { mutableIntStateOf(0) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -159,81 +162,90 @@ fun HomeScreen(
                     CircularProgressIndicator(color = LingoBlue)
                 }
             } else {
-                LazyColumn(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    contentPadding = PaddingValues(bottom = 36.dp)
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    // Section A & B Combined — Hero Banner
-                    item {
-                        EntranceWrapper(delayMillis = 100) {
-                            HeroBannerSection(
-                                displayName = uiState.displayName,
-                                avatarId = uiState.avatarId,
-                                customAvatarPath = uiState.customAvatarPath,
-                                onAvatarClick = { onNavigate("me") },
-                                onSettingsClick = { onNavigate("me") },
-                                onExploreClick = { onNavigate("learn") }
-                            )
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .responsiveContentWidth(680.dp),
+                        contentPadding = PaddingValues(bottom = 36.dp)
+                    ) {
+                        // Section A & B Combined — Hero Banner
+                        item {
+                            EntranceWrapper(delayMillis = 100) {
+                                HeroBannerSection(
+                                    displayName = uiState.displayName,
+                                    avatarId = uiState.avatarId,
+                                    customAvatarPath = uiState.customAvatarPath,
+                                    onAvatarClick = { onNavigate("me") },
+                                    onSettingsClick = { onNavigate("me") },
+                                    onExploreClick = { onNavigate("learn") },
+                                    isCompact = windowInfo.isCompact
+                                )
+                            }
                         }
-                    }
 
-                    item { Spacer(Modifier.height(16.dp)) }
+                        item { Spacer(Modifier.height(16.dp)) }
 
-                    // Section C — Current learning level
-                    item {
-                        EntranceWrapper(delayMillis = 250) {
-                            CurrentLevelSection(
-                                levelName = uiState.levelName,
-                                levelOrder = uiState.levelOrder,
-                                currentXp = uiState.currentLevelXp,
-                                requiredXp = uiState.requiredXp,
-                                onClick = { onNavigate("learn") }
-                            )
+                        // Section C — Current learning level
+                        item {
+                            EntranceWrapper(delayMillis = 250) {
+                                CurrentLevelSection(
+                                    levelName = uiState.levelName,
+                                    levelOrder = uiState.levelOrder,
+                                    currentXp = uiState.currentLevelXp,
+                                    requiredXp = uiState.requiredXp,
+                                    onClick = { onNavigate("learn") }
+                                )
+                            }
                         }
-                    }
 
-                    item { Spacer(Modifier.height(16.dp)) }
+                        item { Spacer(Modifier.height(16.dp)) }
 
-                    // Section D — Four compact statistic cards
-                    item {
-                        EntranceWrapper(delayMillis = 400) {
-                            StatisticsRowSection(
-                                currentXp = uiState.currentXp,
-                                streak = uiState.streak,
-                                completedLessons = uiState.completedLessons,
-                                todayStudySeconds = uiState.todayStudySeconds,
-                                todayStudyMinutes = uiState.todayStudyMinutes
-                            )
+                        // Section D — Four compact statistic cards
+                        item {
+                            EntranceWrapper(delayMillis = 400) {
+                                StatisticsRowSection(
+                                    currentXp = uiState.currentXp,
+                                    streak = uiState.streak,
+                                    completedLessons = uiState.completedLessons,
+                                    todayStudySeconds = uiState.todayStudySeconds,
+                                    todayStudyMinutes = uiState.todayStudyMinutes,
+                                    isCompact = windowInfo.isCompact
+                                )
+                            }
                         }
-                    }
 
-                    item { Spacer(Modifier.height(16.dp)) }
+                        item { Spacer(Modifier.height(16.dp)) }
 
-                    // Section E — Continue learning card vs Getting Started Welcome card
-                    item {
-                        EntranceWrapper(delayMillis = 550) {
-                            ContinueLearningSection(
-                                isNewUser = uiState.isNewUser,
-                                unfinishedLessonTitle = uiState.currentLessonTitle,
-                                unfinishedUnitTitle = uiState.currentUnitTitle,
-                                unitCompletedLessons = uiState.unitCompletedLessons,
-                                unitTotalLessons = uiState.unitTotalLessons,
-                                onResumeClick = {
-                                    val route = uiState.resumeRoute ?: "unit/${uiState.currentUnitId}"
-                                    onNavigate(route)
-                                }
-                            )
+                        // Section E — Continue learning card vs Getting Started Welcome card
+                        item {
+                            EntranceWrapper(delayMillis = 550) {
+                                ContinueLearningSection(
+                                    isNewUser = uiState.isNewUser,
+                                    unfinishedLessonTitle = uiState.currentLessonTitle,
+                                    unfinishedUnitTitle = uiState.currentUnitTitle,
+                                    unitCompletedLessons = uiState.unitCompletedLessons,
+                                    unitTotalLessons = uiState.unitTotalLessons,
+                                    onResumeClick = {
+                                        val route = uiState.resumeRoute ?: "unit/${uiState.currentUnitId}"
+                                        onNavigate(route)
+                                    }
+                                )
+                            }
                         }
-                    }
 
-                    item { Spacer(Modifier.height(20.dp)) }
+                        item { Spacer(Modifier.height(20.dp)) }
 
-                    // Section F — Quick access
-                    item {
-                        EntranceWrapper(delayMillis = 700) {
-                            QuickAccessSection(onNavigate = onNavigate)
+                        // Section F — Quick access
+                        item {
+                            EntranceWrapper(delayMillis = 700) {
+                                QuickAccessSection(onNavigate = onNavigate)
+                            }
                         }
                     }
                 }
@@ -253,7 +265,8 @@ private fun HeroBannerSection(
     customAvatarPath: String? = null,
     onAvatarClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onExploreClick: () -> Unit
+    onExploreClick: () -> Unit,
+    isCompact: Boolean = false
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -262,7 +275,10 @@ private fun HeroBannerSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(
+                    horizontal = if (isCompact) 12.dp else 16.dp,
+                    vertical = 8.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
@@ -271,7 +287,7 @@ private fun HeroBannerSection(
                 border = BorderStroke(2.5.dp, Color.White),
                 shadowElevation = 3.dp,
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(if (isCompact) 44.dp else 52.dp)
                     .clickable { onAvatarClick() }
             ) {
                 Box(
@@ -286,7 +302,7 @@ private fun HeroBannerSection(
                 }
             }
 
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(if (isCompact) 8.dp else 12.dp))
 
             Column(
                 modifier = Modifier
@@ -295,28 +311,21 @@ private fun HeroBannerSection(
             ) {
                 Text(
                     text = "Xin chào,",
-                    fontSize = 12.sp,
+                    fontSize = if (isCompact) 11.sp else 12.sp,
                     color = Color(0xFF64748B),
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "${displayName.ifBlank { "Bạn học viên" }}!",
-                    fontSize = 18.sp,
+                    fontSize = if (isCompact) 15.sp else 17.sp,
+                    lineHeight = if (isCompact) 18.sp else 21.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E3A8A),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "Học tiếng Anh mỗi ngày, tiến bộ từng chút một!",
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2
                 )
             }
 
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(6.dp))
 
             // Notification button
             Surface(
@@ -325,7 +334,7 @@ private fun HeroBannerSection(
                 shadowElevation = 2.dp,
                 border = BorderStroke(1.dp, Color.White),
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(if (isCompact) 38.dp else 42.dp)
                     .clickable { onSettingsClick() }
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -333,19 +342,19 @@ private fun HeroBannerSection(
                         imageVector = Icons.Outlined.Notifications,
                         contentDescription = "Thông báo",
                         tint = Color(0xFF1E3A8A),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(if (isCompact) 18.dp else 20.dp)
                     )
                     Box(
                         modifier = Modifier
                             .size(7.dp)
                             .align(Alignment.TopEnd)
-                            .offset(x = (-9).dp, y = 9.dp)
+                            .offset(x = (-8).dp, y = 8.dp)
                             .background(Color(0xFFEF4444), CircleShape)
                     )
                 }
             }
 
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(6.dp))
 
             // Settings button
             Surface(
@@ -354,7 +363,7 @@ private fun HeroBannerSection(
                 shadowElevation = 2.dp,
                 border = BorderStroke(1.dp, Color.White),
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(if (isCompact) 38.dp else 42.dp)
                     .clickable { onSettingsClick() }
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -362,7 +371,7 @@ private fun HeroBannerSection(
                         imageVector = Icons.Outlined.Settings,
                         contentDescription = "Cài đặt",
                         tint = Color(0xFF1E3A8A),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(if (isCompact) 18.dp else 20.dp)
                     )
                 }
             }
@@ -412,7 +421,7 @@ private fun HeroBannerSection(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(198.dp)
+                    .height(if (isCompact) 205.dp else 198.dp)
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
@@ -422,7 +431,7 @@ private fun HeroBannerSection(
                         )
                     )
             ) {
-                // 1. Right Side: Full London Scene Illustration (Moderate, Balanced 1:1 Aspect Ratio Matching Mockup)
+                // 1. Right Side: Full London Scene Illustration
                 Image(
                     painter = painterResource(id = R.drawable.hero_london_scene),
                     contentDescription = "Mascot học tiếng Anh tại London",
@@ -440,11 +449,11 @@ private fun HeroBannerSection(
                         .background(
                             brush = Brush.horizontalGradient(
                                 colorStops = arrayOf(
-                                    0.00f to Color(0xFF1E40AF), // Deep Royal Blue (100% opaque on left)
-                                    0.38f to Color(0xFF1D4ED8), // Rich Royal Blue behind text
-                                    0.50f to Color(0xFF2563EB).copy(alpha = 0.88f), // Soft organic blend
-                                    0.64f to Color(0xFF3B82F6).copy(alpha = 0.28f), // Translucent blue mist
-                                    0.74f to Color.Transparent, // Reveals the Mascot & Big Ben cleanly
+                                    0.00f to Color(0xFF1E40AF),
+                                    0.38f to Color(0xFF1D4ED8),
+                                    0.50f to Color(0xFF2563EB).copy(alpha = 0.88f),
+                                    0.64f to Color(0xFF3B82F6).copy(alpha = 0.28f),
+                                    0.74f to Color.Transparent,
                                     1.00f to Color.Transparent
                                 )
                             )
@@ -453,28 +462,24 @@ private fun HeroBannerSection(
 
                 // 3. Magical Animated Sparkles Canvas
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    // Ambient soft highlight inside left blue card
                     drawCircle(
                         color = Color.White.copy(alpha = 0.08f),
                         radius = size.width * 0.35f,
                         center = Offset(size.width * 0.15f, size.height * 0.2f)
                     )
 
-                    // Twinkling Golden Star 1 (near top blend)
                     drawSparkleStar(
                         center = Offset(size.width * 0.54f, size.height * 0.22f),
                         radius = 6.dp.toPx(),
                         color = Color(0xFFFDE047).copy(alpha = sparkleAlpha1)
                     )
 
-                    // Twinkling Diamond Star 2 (above mascot/Big Ben)
                     drawSparkleStar(
                         center = Offset(size.width * 0.72f, size.height * 0.14f),
                         radius = 5.dp.toPx(),
                         color = Color.White.copy(alpha = sparkleAlpha2)
                     )
 
-                    // Twinkling Golden Star 3 (near lower books/leaves)
                     drawSparkleStar(
                         center = Offset(size.width * 0.62f, size.height * 0.76f),
                         radius = 5.5.dp.toPx(),
@@ -486,8 +491,13 @@ private fun HeroBannerSection(
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(0.52f)
-                        .padding(start = 18.dp, top = 16.dp, bottom = 16.dp, end = 4.dp),
+                        .fillMaxWidth(if (isCompact) 0.62f else 0.52f)
+                        .padding(
+                            start = if (isCompact) 14.dp else 18.dp,
+                            top = 14.dp,
+                            bottom = 14.dp,
+                            end = 4.dp
+                        ),
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Glassmorphic Badge: "Hành trình tiếng Anh"
@@ -498,30 +508,32 @@ private fun HeroBannerSection(
                     ) {
                         Text(
                             text = "Hành trình tiếng Anh",
-                            fontSize = 10.5.sp,
+                            fontSize = if (isCompact) 9.5.sp else 10.5.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(
+                                horizontal = if (isCompact) 8.dp else 9.dp,
+                                vertical = 4.dp
+                            )
                         )
                     }
 
                     // Headline
                     Text(
                         text = "Cùng LingoStudy\nchinh phục tiếng Anh!",
-                        fontSize = 17.sp,
+                        fontSize = if (isCompact) 15.sp else 17.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
-                        lineHeight = 22.sp
+                        lineHeight = if (isCompact) 19.sp else 22.sp
                     )
 
                     // Subtitle
                     Text(
-                        text = "Học từ vựng, ngữ pháp, luyện nghe & phát âm mỗi ngày.",
-                        fontSize = 11.sp,
+                        text = "Rèn luyện 4 kỹ năng tiếng Anh mỗi ngày.",
+                        fontSize = if (isCompact) 10.5.sp else 11.5.sp,
                         color = Color.White.copy(alpha = 0.92f),
-                        lineHeight = 15.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        lineHeight = if (isCompact) 14.sp else 16.sp,
+                        maxLines = 2
                     )
 
                     // Interactive CTA Button with Elevation & Vector Arrow
@@ -532,21 +544,26 @@ private fun HeroBannerSection(
                         shadowElevation = 3.dp
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(
+                                horizontal = if (isCompact) 11.dp else 14.dp,
+                                vertical = if (isCompact) 6.5.dp else 8.dp
+                            ),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = "Bắt đầu học ngay",
-                                fontSize = 12.sp,
+                                fontSize = if (isCompact) 11.sp else 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1D4ED8)
+                                color = Color(0xFF1D4ED8),
+                                maxLines = 1,
+                                softWrap = false
                             )
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(5.dp))
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
                                 tint = Color(0xFF1D4ED8),
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(if (isCompact) 11.dp else 13.dp)
                             )
                         }
                     }
@@ -585,6 +602,20 @@ private fun CurrentLevelSection(
     requiredXp: Int,
     onClick: () -> Unit = {}
 ) {
+    val displayLevelName = remember(levelName, levelOrder) {
+        val trimmed = levelName.trim()
+        when {
+            trimmed.isBlank() -> "Beginner $levelOrder"
+            trimmed.startsWith("Cấp ", ignoreCase = true) && trimmed.contains(":") -> {
+                trimmed.substringAfter(":").trim().ifBlank { "Cấp $levelOrder" }
+            }
+            trimmed.contains(":") -> {
+                trimmed.substringBefore(":").trim()
+            }
+            else -> trimmed
+        }
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -630,12 +661,12 @@ private fun CurrentLevelSection(
                     Spacer(Modifier.height(1.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = levelName.ifBlank { "Beginner 1" },
-                            fontSize = 16.sp,
+                            text = displayLevelName,
+                            fontSize = if (displayLevelName.length > 14) 14.5.sp else 16.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color(0xFF1E3A8A),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            softWrap = false
                         )
                         Spacer(Modifier.width(4.dp))
                         Icon(
@@ -733,7 +764,8 @@ private fun StatisticsRowSection(
     streak: Int,
     completedLessons: Int,
     todayStudySeconds: Long,
-    todayStudyMinutes: Int
+    todayStudyMinutes: Int,
+    isCompact: Boolean = false
 ) {
     val displayStudyTime = when {
         todayStudyMinutes >= 60 -> "${todayStudyMinutes / 60}h ${todayStudyMinutes % 60}m"
@@ -741,53 +773,117 @@ private fun StatisticsRowSection(
         else -> "${todayStudyMinutes}m"
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        StatCardMini(
-            icon = Icons.Default.Star,
-            iconTint = Color(0xFFD97706),
-            value = "$currentXp",
-            label = "Tổng XP",
-            bgColor = Color(0xFFFFFBEB),
+    if (isCompact) {
+        Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        )
-        StatCardMini(
-            icon = Icons.Default.LocalFireDepartment,
-            iconTint = Color(0xFFDC2626),
-            value = "$streak",
-            label = "Ngày học liên tiếp",
-            bgColor = Color(0xFFFEF2F2),
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatCardMini(
+                    icon = Icons.Default.Star,
+                    iconTint = Color(0xFFD97706),
+                    value = "$currentXp",
+                    label = "Tổng XP",
+                    bgColor = Color(0xFFFFFBEB),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+                StatCardMini(
+                    icon = Icons.Default.LocalFireDepartment,
+                    iconTint = Color(0xFFDC2626),
+                    value = "$streak",
+                    label = "Ngày liên tiếp",
+                    bgColor = Color(0xFFFEF2F2),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                StatCardMini(
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    iconTint = Color(0xFF7C3AED),
+                    value = "$completedLessons",
+                    label = "Bài đã học",
+                    bgColor = Color(0xFFF3E8FF),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+                StatCardMini(
+                    icon = Icons.Default.Schedule,
+                    iconTint = Color(0xFF059669),
+                    value = displayStudyTime,
+                    label = "Thời gian học",
+                    bgColor = Color(0xFFECFDF5),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
+        }
+    } else {
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        )
-        StatCardMini(
-            icon = Icons.AutoMirrored.Filled.MenuBook,
-            iconTint = Color(0xFF7C3AED),
-            value = "$completedLessons",
-            label = "Bài học đã xong",
-            bgColor = Color(0xFFF3E8FF),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        )
-        StatCardMini(
-            icon = Icons.Default.Schedule,
-            iconTint = Color(0xFF059669),
-            value = displayStudyTime,
-            label = "Thời gian học app",
-            bgColor = Color(0xFFECFDF5),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-        )
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            StatCardMini(
+                icon = Icons.Default.Star,
+                iconTint = Color(0xFFD97706),
+                value = "$currentXp",
+                label = "Tổng XP",
+                bgColor = Color(0xFFFFFBEB),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            )
+            StatCardMini(
+                icon = Icons.Default.LocalFireDepartment,
+                iconTint = Color(0xFFDC2626),
+                value = "$streak",
+                label = "Ngày liên tiếp",
+                bgColor = Color(0xFFFEF2F2),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            )
+            StatCardMini(
+                icon = Icons.AutoMirrored.Filled.MenuBook,
+                iconTint = Color(0xFF7C3AED),
+                value = "$completedLessons",
+                label = "Bài đã học",
+                bgColor = Color(0xFFF3E8FF),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            )
+            StatCardMini(
+                icon = Icons.Default.Schedule,
+                iconTint = Color(0xFF059669),
+                value = displayStudyTime,
+                label = "Thời gian học",
+                bgColor = Color(0xFFECFDF5),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            )
+        }
     }
 }
 
@@ -828,8 +924,7 @@ private fun StatCardMini(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF1E3A8A),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 1
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -838,8 +933,7 @@ private fun StatCardMini(
                 color = Color(0xFF64748B),
                 lineHeight = 13.sp,
                 minLines = 2,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 2
             )
         }
     }
@@ -896,7 +990,7 @@ private fun ContinueLearningSection(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.5.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(
                                 imageVector = if (isNewUser) Icons.Default.AutoStories else Icons.Default.School,
@@ -904,10 +998,10 @@ private fun ContinueLearningSection(
                                 tint = if (isNewUser) Color(0xFF92400E) else Color(0xFF2563EB),
                                 modifier = Modifier.size(13.dp)
                             )
-                            Spacer(Modifier.width(5.dp))
+                            Spacer(Modifier.width(4.dp))
                             Text(
                                 text = if (isNewUser) "BẮT ĐẦU HÀNH TRÌNH" else "TIẾP TỤC HỌC • UNIT",
-                                fontSize = 10.5.sp,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = if (isNewUser) Color(0xFF92400E) else Color(0xFF2563EB),
                                 maxLines = 1,
@@ -926,11 +1020,13 @@ private fun ContinueLearningSection(
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
-                                text = "$completed / $total bài học ($percent%)",
-                                fontSize = 11.sp,
+                                text = "$completed/$total bài ($percent%)",
+                                fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF475569),
-                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -941,11 +1037,11 @@ private fun ContinueLearningSection(
                 // Unit Title
                 Text(
                     text = if (isNewUser) "Chào mừng bạn đến với LingoStudy!" else unfinishedUnitTitle.ifBlank { "Unit 1: Chào hỏi & Giới thiệu" },
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E3A8A),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    lineHeight = 22.sp,
+                    maxLines = 2
                 )
 
                 Spacer(Modifier.height(4.dp))
@@ -961,8 +1057,8 @@ private fun ContinueLearningSection(
                     },
                     fontSize = 12.5.sp,
                     color = Color(0xFF64748B),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    lineHeight = 17.sp,
+                    maxLines = 2
                 )
 
                 // Progress Bar (for returning user)
@@ -1216,11 +1312,14 @@ private fun HomeBottomNav(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
                 selected = selectedIndex == index,
                 onClick = { onItemSelected(index) },
                 icon = { Icon(imageVector = item.icon, contentDescription = item.label) },
+                alwaysShowLabel = true,
                 label = {
                     Text(
                         text = item.label,
                         fontSize = 11.sp,
-                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
+                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

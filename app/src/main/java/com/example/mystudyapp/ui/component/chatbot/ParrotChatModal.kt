@@ -38,17 +38,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,6 +69,7 @@ import com.example.mystudyapp.R
 import com.example.mystudyapp.data.model.ChatMessage
 import com.example.mystudyapp.data.model.MessageSender
 import com.example.mystudyapp.data.model.cleanChatText
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
 import com.example.mystudyapp.viewmodel.ChatbotViewModel
 
 @Composable
@@ -83,8 +78,8 @@ fun ParrotChatModal(
     onDismiss: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
     var inputText by remember { mutableStateOf("") }
-    var showHistoryDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     // Auto scroll to bottom when new messages arrive
@@ -111,15 +106,21 @@ fun ParrotChatModal(
                     indication = null,
                     onClick = onDismiss
                 )
-                .padding(end = 12.dp, bottom = 74.dp)
+                .padding(
+                    start = if (windowInfo.isTablet) 0.dp else 12.dp,
+                    end = 12.dp,
+                    bottom = if (windowInfo.isCompact) 68.dp else 76.dp
+                )
                 .imePadding(),
-            contentAlignment = Alignment.BottomEnd
+            contentAlignment = if (windowInfo.isTablet) Alignment.BottomEnd else Alignment.BottomCenter
         ) {
-            // Chat popup card matching dimensions (width ~66%, height ~44%)
+            // Responsive chat popup card: wide on phones, constrained on tablet
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth(0.66f)
-                    .fillMaxHeight(0.44f)
+                    .fillMaxWidth(if (windowInfo.isTablet) 0.5f else 0.96f)
+                    .widthIn(max = 420.dp)
+                    .fillMaxHeight(if (windowInfo.isShortScreen) 0.70f else if (windowInfo.isCompact) 0.55f else 0.48f)
+                    .heightIn(min = 340.dp, max = 560.dp)
                     .clip(RoundedCornerShape(22.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -151,9 +152,8 @@ fun ParrotChatModal(
 
                     // Foreground chat structure
                     Column(modifier = Modifier.fillMaxSize()) {
-                        // Header: Only History button and Close button (no gear icon, no API)
+                        // Header: Close button only (no history button, no gear icon, no API)
                         ChatHeader(
-                            onHistoryClick = { showHistoryDialog = true },
                             onCloseClick = onDismiss
                         )
 
@@ -211,20 +211,6 @@ fun ParrotChatModal(
             }
         }
     }
-
-    // Chat History Dialog
-    if (showHistoryDialog) {
-        ChatHistoryDialog(
-            messages = uiState.messages,
-            onSelectQuestion = { selectedQuestion ->
-                inputText = selectedQuestion
-            },
-            onClearChat = {
-                viewModel.clearChat()
-            },
-            onDismiss = { showHistoryDialog = false }
-        )
-    }
 }
 
 @Composable
@@ -268,7 +254,6 @@ private fun ChatAtmosphericClouds() {
 
 @Composable
 private fun ChatHeader(
-    onHistoryClick: () -> Unit,
     onCloseClick: () -> Unit
 ) {
     Surface(
@@ -308,7 +293,7 @@ private fun ChatHeader(
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E3A8A),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    softWrap = false
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -327,26 +312,7 @@ private fun ChatHeader(
                 }
             }
 
-            // Compact Action Buttons: ONLY History and Close (No gear, no API)
-            Surface(
-                shape = CircleShape,
-                color = Color(0xFFF1F5F9),
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onHistoryClick() }
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = "Lịch sử câu hỏi",
-                        tint = Color(0xFF475569),
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.width(4.dp))
-
+            // Close button ONLY (✕)
             Surface(
                 shape = CircleShape,
                 color = Color(0xFFF1F5F9),
@@ -365,122 +331,6 @@ private fun ChatHeader(
             }
         }
     }
-}
-
-@Composable
-private fun ChatHistoryDialog(
-    messages: List<ChatMessage>,
-    onSelectQuestion: (String) -> Unit,
-    onClearChat: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    val userQueries = remember(messages) {
-        messages.filter { it.sender == MessageSender.USER && !it.isLoading }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    tint = Color(0xFF2563EB),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "Lịch sử câu hỏi",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E3A8A)
-                )
-            }
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (userQueries.isEmpty()) {
-                    Text(
-                        text = "Chưa có câu hỏi nào gần đây. Hãy gửi câu hỏi bất kỳ để cùng Vẹt học tiếng Anh nhé!",
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B),
-                        lineHeight = 16.sp
-                    )
-                } else {
-                    Text(
-                        text = "Các câu hỏi gần đây (chạm để chọn lại):",
-                        fontSize = 11.5.sp,
-                        color = Color(0xFF64748B),
-                        fontWeight = FontWeight.Medium
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 220.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        items(userQueries.reversed()) { msg ->
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF1F5F9),
-                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onSelectQuestion(msg.text)
-                                        onDismiss()
-                                    }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = msg.text,
-                                        fontSize = 11.5.sp,
-                                        color = Color(0xFF1E293B),
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (userQueries.isNotEmpty()) {
-                    Spacer(Modifier.height(10.dp))
-                    TextButton(
-                        onClick = {
-                            onClearChat()
-                            onDismiss()
-                        },
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "Xóa cuộc trò chuyện",
-                            fontSize = 11.sp,
-                            color = Color(0xFFDC2626),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Đóng", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            }
-        },
-        shape = RoundedCornerShape(16.dp),
-        containerColor = Color.White
-    )
 }
 
 @Composable
@@ -649,11 +499,11 @@ private fun ChatInputBar(
                 onValueChange = onTextChange,
                 placeholder = {
                     Text(
-                        text = "Nhập câu hỏi của bạn...",
+                        text = "Nhập câu hỏi của bạn",
                         fontSize = 11.sp,
                         color = Color(0xFF94A3B8),
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        softWrap = false
                     )
                 },
                 modifier = Modifier

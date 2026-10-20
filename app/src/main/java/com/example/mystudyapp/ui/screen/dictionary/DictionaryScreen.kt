@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -31,9 +32,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -41,8 +40,6 @@ import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -84,6 +81,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.data.model.DictionaryResult
 import com.example.mystudyapp.ui.component.shared.LingoBottomNav
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.viewmodel.DictionaryUiState
 import com.example.mystudyapp.viewmodel.DictionaryViewModel
 import com.example.mystudyapp.viewmodel.DictionaryViewModelFactory
@@ -98,6 +97,7 @@ fun DictionaryScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+    val windowInfo = rememberWindowInfo()
 
     // Preload default popular word "apple" so user immediately sees rich UI matching reference
     LaunchedEffect(Unit) {
@@ -187,143 +187,153 @@ fun DictionaryScreen(
             // Atmospheric soft floating clouds background
             AtmosphericCloudsCanvas()
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
             ) {
-                // 1. Header (Back button, Title "Từ điển", Subtitle)
-                item {
-                    DictionaryTopHeader(
-                        onBack = { onNavigate("home") }
-                    )
-                }
-
-                // 2. Search Bar
-                item {
-                    DictionarySearchBar(
-                        query = uiState.searchQuery,
-                        isLoading = uiState.isLoading,
-                        onQueryChange = { viewModel.onQueryChanged(it) },
-                        onClear = { viewModel.clearQuery() },
-                        onSearch = {
-                            keyboardController?.hide()
-                            viewModel.searchWord()
-                        }
-                    )
-                }
-
-                // 3. Section "Từ vựng phổ biến" (8 chips: apple, house, cat, dog, sun, tree, book, school)
-                item {
-                    PopularVocabularySection(
-                        items = uiState.popularWords,
-                        onWordClick = { word ->
-                            keyboardController?.hide()
-                            viewModel.onQueryChanged(word)
-                            viewModel.searchWord(word)
-                        }
-                    )
-                }
-
-                // 4. Loading State
-                if (uiState.isLoading) {
+                LazyColumn(
+                    modifier = Modifier
+                        .responsiveContentWidth(680.dp)
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentPadding = PaddingValues(
+                        horizontal = if (windowInfo.isCompact) 12.dp else 16.dp,
+                        vertical = 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(if (windowInfo.isCompact) 12.dp else 16.dp)
+                ) {
+                    // 1. Header (Back button, Title "Từ điển", Subtitle)
                     item {
-                        Surface(
-                            color = Color.White.copy(alpha = 0.95f),
-                            shape = RoundedCornerShape(26.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            shadowElevation = 2.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(28.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                CircularProgressIndicator(
-                                    color = Color(0xFF2563EB),
-                                    strokeWidth = 3.dp,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                                Spacer(Modifier.height(12.dp))
-                                Text(
-                                    text = "Đang tra cứu từ \"${uiState.activeQuery}\"...",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A8A)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 5. Error State
-                else if (uiState.errorMessage != null) {
-                    item {
-                        Surface(
-                            color = Color(0xFFFFF1F2),
-                            shape = RoundedCornerShape(26.dp),
-                            border = BorderStroke(1.dp, Color(0xFFFECDD3)),
-                            shadowElevation = 1.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "Không tìm thấy từ \"${uiState.activeQuery}\"",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFFBE123C),
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(Modifier.height(6.dp))
-                                Text(
-                                    text = "Hãy kiểm tra lại chính tả hoặc chọn một từ phổ biến bên trên để tra cứu nhé!",
-                                    fontSize = 13.sp,
-                                    color = Color(0xFF475569),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // 6. Search Result Card (Exact reference design 1)
-                val result = uiState.result
-                if (result != null && !uiState.isLoading) {
-                    item {
-                        SearchResultCard(
-                            result = result,
-                            isFavorite = uiState.isFavorite,
-                            onToggleFavorite = { viewModel.toggleFavorite() },
-                            onPlayPronounce = { playPronounce(result.word, result.audioUrl) }
+                        DictionaryTopHeader(
+                            isCompact = windowInfo.isCompact,
+                            onBack = { onNavigate("home") }
                         )
                     }
-                }
 
-                // 7. Section "Lịch sử tra cứu"
-                item {
-                    SearchHistorySection(
-                        history = uiState.searchHistory,
-                        onWordClick = { word ->
-                            keyboardController?.hide()
-                            viewModel.onQueryChanged(word)
-                            viewModel.searchWord(word)
-                        },
-                        onRemoveWord = { word ->
-                            viewModel.removeHistoryItem(word)
-                        },
-                        onViewAll = {
-                            viewModel.setShowAllHistoryDialog(true)
+                    // 2. Search Bar
+                    item {
+                        DictionarySearchBar(
+                            query = uiState.searchQuery,
+                            isLoading = uiState.isLoading,
+                            onQueryChange = { viewModel.onQueryChanged(it) },
+                            onClear = { viewModel.clearQuery() },
+                            onSearch = {
+                                keyboardController?.hide()
+                                viewModel.searchWord()
+                            }
+                        )
+                    }
+
+                    // 3. Section "Từ vựng phổ biến" (8 chips: apple, house, cat, dog, sun, tree, book, school)
+                    item {
+                        PopularVocabularySection(
+                            items = uiState.popularWords,
+                            isCompact = windowInfo.isCompact,
+                            onWordClick = { word ->
+                                keyboardController?.hide()
+                                viewModel.onQueryChanged(word)
+                                viewModel.searchWord(word)
+                            }
+                        )
+                    }
+
+                    // 4. Loading State
+                    if (uiState.isLoading) {
+                        item {
+                            Surface(
+                                color = Color.White.copy(alpha = 0.95f),
+                                shape = RoundedCornerShape(26.dp),
+                                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                shadowElevation = 2.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(28.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color(0xFF2563EB),
+                                        strokeWidth = 3.dp,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                    Text(
+                                        text = "Đang tra cứu từ \"${uiState.activeQuery}\"...",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1E3A8A)
+                                    )
+                                }
+                            }
                         }
-                    )
-                }
+                    }
 
-                item {
-                    Spacer(Modifier.height(20.dp))
+                    // 5. Error State
+                    else if (uiState.errorMessage != null) {
+                        item {
+                            Surface(
+                                color = Color(0xFFFFF1F2),
+                                shape = RoundedCornerShape(26.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFECDD3)),
+                                shadowElevation = 1.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Không tìm thấy từ \"${uiState.activeQuery}\"",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = Color(0xFFBE123C),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = "Hãy kiểm tra lại chính tả hoặc chọn một từ phổ biến bên trên để tra cứu nhé!",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF475569),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 6. Search Result Card (Exact reference design 1)
+                    val result = uiState.result
+                    if (result != null && !uiState.isLoading) {
+                        item {
+                            SearchResultCard(
+                                result = result,
+                                isCompact = windowInfo.isCompact,
+                                onPlayPronounce = { playPronounce(result.word, result.audioUrl) }
+                            )
+                        }
+                    }
+
+                    // 7. Section "Lịch sử tra cứu"
+                    item {
+                        SearchHistorySection(
+                            history = uiState.searchHistory,
+                            onWordClick = { word ->
+                                keyboardController?.hide()
+                                viewModel.onQueryChanged(word)
+                                viewModel.searchWord(word)
+                            },
+                            onRemoveWord = { word ->
+                                viewModel.removeHistoryItem(word)
+                            },
+                            onViewAll = {
+                                viewModel.setShowAllHistoryDialog(true)
+                            }
+                        )
+                    }
+
+                    item {
+                        Spacer(Modifier.height(20.dp))
+                    }
                 }
             }
         }
@@ -388,7 +398,10 @@ private fun AtmosphericCloudsCanvas() {
 }
 
 @Composable
-private fun DictionaryTopHeader(onBack: () -> Unit) {
+private fun DictionaryTopHeader(
+    isCompact: Boolean = false,
+    onBack: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -402,7 +415,7 @@ private fun DictionaryTopHeader(onBack: () -> Unit) {
             color = Color.White,
             shadowElevation = 2.dp,
             modifier = Modifier
-                .size(42.dp)
+                .size(if (isCompact) 38.dp else 42.dp)
                 .clickable { onBack() }
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -410,24 +423,24 @@ private fun DictionaryTopHeader(onBack: () -> Unit) {
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Quay lại",
                     tint = Color(0xFF1E3A8A),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isCompact) 18.dp else 20.dp)
                 )
             }
         }
 
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(if (isCompact) 10.dp else 14.dp))
 
         Column {
             Text(
                 text = "Từ điển",
-                fontSize = 23.sp,
+                fontSize = if (isCompact) 20.sp else 23.sp,
                 fontWeight = FontWeight.Black,
                 color = Color(0xFF1E3A8A)
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(1.dp))
             Text(
                 text = "Tra cứu từ vựng nhanh chóng",
-                fontSize = 13.sp,
+                fontSize = if (isCompact) 12.sp else 13.sp,
                 color = Color(0xFF64748B),
                 fontWeight = FontWeight.Medium
             )
@@ -473,7 +486,7 @@ private fun DictionarySearchBar(
             ) {
                 if (query.isEmpty()) {
                     Text(
-                        text = "Nhập từ cần tìm...",
+                        text = "Nhập từ cần tra cứu",
                         fontSize = 15.sp,
                         color = Color(0xFF94A3B8)
                     )
@@ -521,6 +534,7 @@ private fun DictionarySearchBar(
 @Composable
 private fun PopularVocabularySection(
     items: List<PopularWordItem>,
+    isCompact: Boolean = false,
     onWordClick: (String) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -529,31 +543,32 @@ private fun PopularVocabularySection(
                 imageVector = Icons.Default.LocalFireDepartment,
                 contentDescription = null,
                 tint = Color(0xFFEA580C),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(if (isCompact) 18.dp else 20.dp)
             )
             Spacer(Modifier.width(6.dp))
             Text(
                 text = "Từ vựng phổ biến",
-                fontSize = 16.sp,
+                fontSize = if (isCompact) 15.sp else 16.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF1E3A8A)
             )
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
 
         // 2 rows of 4 columns
         val row1 = items.take(4)
         val row2 = items.drop(4).take(4)
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 row1.forEach { item ->
                     PopularWordChip(
                         item = item,
+                        isCompact = isCompact,
                         modifier = Modifier.weight(1f),
                         onClick = { onWordClick(item.word) }
                     )
@@ -562,11 +577,12 @@ private fun PopularVocabularySection(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 row2.forEach { item ->
                     PopularWordChip(
                         item = item,
+                        isCompact = isCompact,
                         modifier = Modifier.weight(1f),
                         onClick = { onWordClick(item.word) }
                     )
@@ -579,37 +595,38 @@ private fun PopularVocabularySection(
 @Composable
 private fun PopularWordChip(
     item: PopularWordItem,
+    isCompact: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         color = Color.White.copy(alpha = 0.95f),
         shadowElevation = 1.dp,
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         modifier = modifier
-            .height(42.dp)
+            .height(if (isCompact) 38.dp else 42.dp)
             .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 6.dp),
+                .padding(horizontal = if (isCompact) 4.dp else 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             DictionaryIllustration(
                 word = item.illustrationType,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(if (isCompact) 18.dp else 22.dp)
             )
-            Spacer(Modifier.width(5.dp))
+            Spacer(Modifier.width(if (isCompact) 3.dp else 5.dp))
             Text(
                 text = item.word,
-                fontSize = 12.5.sp,
+                fontSize = if (isCompact) 11.5.sp else 12.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1E3A8A),
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                softWrap = false
             )
         }
     }
@@ -618,8 +635,7 @@ private fun PopularWordChip(
 @Composable
 private fun SearchResultCard(
     result: DictionaryResult,
-    isFavorite: Boolean,
-    onToggleFavorite: () -> Unit,
+    isCompact: Boolean = false,
     onPlayPronounce: () -> Unit
 ) {
     Surface(
@@ -629,40 +645,22 @@ private fun SearchResultCard(
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            // Card Header: Badge & Star favorite button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Column(modifier = Modifier.padding(if (isCompact) 14.dp else 18.dp)) {
+            // Card Header: Badge
+            Surface(
+                color = Color(0xFFDBEAFE),
+                shape = RoundedCornerShape(10.dp)
             ) {
-                Surface(
-                    color = Color(0xFFDBEAFE),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text(
-                        text = "Kết quả tra cứu",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF2563EB),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                    )
-                }
-
-                IconButton(
-                    onClick = onToggleFavorite,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = "Yêu thích",
-                        tint = if (isFavorite) Color(0xFFF59E0B) else Color(0xFF94A3B8),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                Text(
+                    text = "Kết quả tra cứu",
+                    fontSize = if (isCompact) 11.sp else 11.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF2563EB),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(if (isCompact) 10.dp else 14.dp))
 
             // Main Info: Illustration + Word Details
             Row(
@@ -670,21 +668,23 @@ private fun SearchResultCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Left Squircle Container
+                val squircleSize = if (isCompact) 80.dp else 105.dp
+                val illSize = if (isCompact) 56.dp else 76.dp
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(if (isCompact) 18.dp else 22.dp),
                     color = Color(0xFFEFF6FF),
                     border = BorderStroke(1.dp, Color(0xFFDBEAFE)),
-                    modifier = Modifier.size(105.dp)
+                    modifier = Modifier.size(squircleSize)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         DictionaryIllustration(
                             word = result.word,
-                            modifier = Modifier.size(76.dp)
+                            modifier = Modifier.size(illSize)
                         )
                     }
                 }
 
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(if (isCompact) 10.dp else 14.dp))
 
                 // Right Column Details
                 Column(modifier = Modifier.weight(1f)) {
@@ -692,29 +692,37 @@ private fun SearchResultCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = result.word,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFF1E3A8A),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = Color(0xFF94A3B8),
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(Modifier.weight(1f))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = result.word,
+                                fontSize = if (isCompact) 20.sp else 24.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF1E3A8A),
+                                maxLines = 2,
+                                lineHeight = if (isCompact) 23.sp else 27.sp
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+
+                        Spacer(Modifier.width(6.dp))
 
                         // Audio button
+                        val audioSize = if (isCompact) 34.dp else 38.dp
+                        val audioIconSize = if (isCompact) 17.dp else 19.dp
                         Surface(
                             shape = CircleShape,
                             color = Color(0xFFDBEAFE),
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(audioSize)
                                 .clickable { onPlayPronounce() }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -722,7 +730,7 @@ private fun SearchResultCard(
                                     imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                                     contentDescription = "Phát âm",
                                     tint = Color(0xFF2563EB),
-                                    modifier = Modifier.size(19.dp)
+                                    modifier = Modifier.size(audioIconSize)
                                 )
                             }
                         }
@@ -732,13 +740,13 @@ private fun SearchResultCard(
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = result.ipa,
-                            fontSize = 14.5.sp,
+                            fontSize = if (isCompact) 13.5.sp else 14.5.sp,
                             fontWeight = FontWeight.Medium,
                             color = Color(0xFF64748B)
                         )
                     }
 
-                    Spacer(Modifier.height(5.dp))
+                    Spacer(Modifier.height(4.dp))
 
                     // Part of speech badge
                     Surface(
@@ -747,24 +755,23 @@ private fun SearchResultCard(
                     ) {
                         Text(
                             text = result.displayPartOfSpeech,
-                            fontSize = 11.sp,
+                            fontSize = if (isCompact) 10.5.sp else 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF2563EB),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp)
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
 
-                    Spacer(Modifier.height(5.dp))
+                    Spacer(Modifier.height(4.dp))
 
                     // Primary Vietnamese meaning
                     Text(
                         text = result.displayMeaningVi,
-                        fontSize = 19.sp,
+                        fontSize = if (isCompact) 16.sp else 19.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1E3A8A),
-                        lineHeight = 23.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        lineHeight = if (isCompact) 20.sp else 23.sp,
+                        maxLines = 3
                     )
                 }
             }
@@ -835,36 +842,6 @@ private fun SearchResultCard(
                         text = exampleVi,
                         fontSize = 13.5.sp,
                         color = Color(0xFF64748B)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Action Button: "Thêm vào yêu thích" / "Đã thêm vào yêu thích"
-            Button(
-                onClick = onToggleFavorite,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isFavorite) Color(0xFFDCFCE7) else Color(0xFFEFF6FF),
-                    contentColor = if (isFavorite) Color(0xFF15803D) else Color(0xFF2563EB)
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Check else Icons.AutoMirrored.Filled.MenuBook,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (isFavorite) "Đã thêm vào yêu thích" else "Thêm vào yêu thích",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -1035,7 +1012,7 @@ private fun AllHistoryDialog(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp),
+                        .heightIn(max = 260.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(history) { word ->

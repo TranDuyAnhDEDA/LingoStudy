@@ -1,7 +1,6 @@
 package com.example.mystudyapp.ui.screen.profile
 
 import android.net.Uri
-import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -37,14 +36,12 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -100,6 +97,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.shared.LingoBottomNav
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.viewmodel.DailyChartBar
 import com.example.mystudyapp.viewmodel.LearningHistoryItem
@@ -114,37 +113,17 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory())
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
     val context = LocalContext.current
 
     // Dialog control states
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showAvatarPickerDialog by remember { mutableStateOf(false) }
     var showLearningHistoryDialog by remember { mutableStateOf(false) }
-    var showFavoritesDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var showHelpDialog by remember { mutableStateOf(false) }
     var showLogoutConfirmDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
-
-    // TTS engine for favorite words pronunciation
-    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
-    DisposableEffect(context) {
-        var ttsInstance: TextToSpeech? = null
-        ttsInstance = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                ttsInstance?.language = Locale.US
-            }
-        }
-        tts = ttsInstance
-        onDispose {
-            try {
-                ttsInstance?.stop()
-                ttsInstance?.shutdown()
-            } catch (e: Exception) {
-                // Ignore shutdown error
-            }
-        }
-    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -202,54 +181,61 @@ fun ProfileScreen(
                     CircularProgressIndicator(color = Color(0xFF2563EB))
                 }
             } else {
-                LazyColumn(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .statusBarsPadding(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    // SECTION 1: Top Header (Avatar, Name, Email, Pill Tag, Settings Button)
-                    item {
-                        ProfileHeader(
-                            uiState = uiState,
-                            onAvatarClick = { showAvatarPickerDialog = true },
-                            onEditNameClick = { showEditProfileDialog = true },
-                            onSettingsClick = { showSettingsDialog = true }
-                        )
-                    }
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .responsiveContentWidth(680.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // SECTION 1: Top Header (Avatar, Name, Email, Pill Tag, Settings Button)
+                        item {
+                            ProfileHeader(
+                                uiState = uiState,
+                                isCompact = windowInfo.isCompact,
+                                onAvatarClick = { showAvatarPickerDialog = true },
+                                onEditNameClick = { showEditProfileDialog = true },
+                                onSettingsClick = { showSettingsDialog = true }
+                            )
+                        }
 
-                    // SECTION 2: 4-Column Statistics Card
-                    item {
-                        ProfileStatsCard(uiState = uiState)
-                    }
+                        // SECTION 2: 4-Column Statistics Card
+                        item {
+                            ProfileStatsCard(uiState = uiState, isCompact = windowInfo.isCompact)
+                        }
 
-                    // SECTION 2.5: Cột thống kê thời gian học mỗi ngày (Daily Study Time Chart)
-                    item {
-                        ProfileStudyTimeChart(
-                            chartBars = uiState.last7DaysChart,
-                            todayMinutes = uiState.todayStudyMinutes,
-                            totalMinutes = uiState.totalStudyMinutes,
-                            dailyGoalMinutes = uiState.profile?.dailyGoalMinutes ?: 30
-                        )
-                    }
+                        // SECTION 2.5: Cột thống kê thời gian học mỗi ngày (Daily Study Time Chart)
+                        item {
+                            ProfileStudyTimeChart(
+                                chartBars = uiState.last7DaysChart,
+                                todayMinutes = uiState.todayStudyMinutes,
+                                totalMinutes = uiState.totalStudyMinutes,
+                                dailyGoalMinutes = uiState.profile?.dailyGoalMinutes ?: 30,
+                                isCompact = windowInfo.isCompact
+                            )
+                        }
 
-                    // SECTION 3: Main Menu Section (Card with 6 rows)
-                    item {
-                        ProfileMenuList(
-                            onEditProfile = { showEditProfileDialog = true },
-                            onLearningHistory = { showLearningHistoryDialog = true },
-                            onFavorites = { showFavoritesDialog = true },
-                            onNotifications = { showNotificationsDialog = true },
-                            onHelpSupport = { showHelpDialog = true },
-                            onLogout = { showLogoutConfirmDialog = true }
-                        )
-                    }
+                        // SECTION 3: Main Menu Section (Card with 6 rows)
+                        item {
+                            ProfileMenuList(
+                                onEditProfile = { showEditProfileDialog = true },
+                                onLearningHistory = { showLearningHistoryDialog = true },
+                                onNotifications = { showNotificationsDialog = true },
+                                onHelpSupport = { showHelpDialog = true },
+                                onLogout = { showLogoutConfirmDialog = true }
+                            )
+                        }
 
-                    // SECTION 4: Bottom Decorative Banner with Cute Leaves
-                    item {
-                        BottomBannerDecoration()
+                        // SECTION 4: Bottom Decorative Banner with Cute Leaves
+                        item {
+                            BottomBannerDecoration()
+                        }
                     }
                 }
             }
@@ -259,7 +245,7 @@ fun ProfileScreen(
     // MODAL 1: Chỉnh sửa thông tin cá nhân
     if (showEditProfileDialog) {
         EditProfileDialog(
-            currentName = uiState.profile?.displayName.orEmpty().ifBlank { "Nguyễn Minh Anh" },
+            currentName = uiState.profile?.displayName.orEmpty().ifBlank { "Bạn học viên" },
             currentPhone = uiState.profile?.phoneNumber.orEmpty(),
             currentGoal = uiState.profile?.dailyGoalMinutes ?: 30,
             currentLevel = uiState.currentLevelName,
@@ -296,20 +282,7 @@ fun ProfileScreen(
         )
     }
 
-    // MODAL 4: Từ vựng yêu thích
-    if (showFavoritesDialog) {
-        FavoriteWordsDialog(
-            favorites = uiState.favoriteWords,
-            onDismiss = { showFavoritesDialog = false },
-            onPlayAudio = { word ->
-                tts?.speak(word, TextToSpeech.QUEUE_FLUSH, null, "profile_fav_tts")
-            },
-            onSearchWordInDict = { word ->
-                showFavoritesDialog = false
-                onNavigate("dictionary")
-            }
-        )
-    }
+
 
     // MODAL 5: Cài đặt thông báo
     if (showNotificationsDialog) {
@@ -390,13 +363,14 @@ fun ProfileScreen(
 @Composable
 private fun ProfileHeader(
     uiState: ProfileUiState,
+    isCompact: Boolean = false,
     onAvatarClick: () -> Unit,
     onEditNameClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
     val profile = uiState.profile
-    val displayName = profile?.displayName.orEmpty().ifBlank { "Nguyễn Minh Anh" }
-    val email = profile?.email.orEmpty().ifBlank { "minhanh@gmail.com" }
+    val displayName = profile?.displayName.orEmpty().ifBlank { "Bạn học viên" }
+    val email = profile?.email.orEmpty().ifBlank { "Chưa cập nhật email" }
     val avatarId = profile?.avatarId ?: "boy_hoodie"
 
     Row(
@@ -405,15 +379,15 @@ private fun ProfileHeader(
             .padding(top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Circular Avatar with Camera Badge (matches 1:1 reference)
+        // Circular Avatar with Camera Badge
         LingoAvatarWithBadge(
             avatarId = avatarId,
             customAvatarPath = profile?.customAvatarPath,
-            size = 84.dp,
+            size = if (isCompact) 68.dp else 84.dp,
             onEditClick = onAvatarClick
         )
 
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(if (isCompact) 10.dp else 14.dp))
 
         // Name, Email, Pill Badge
         Column(modifier = Modifier.weight(1f)) {
@@ -423,18 +397,18 @@ private fun ProfileHeader(
             ) {
                 Text(
                     text = displayName,
-                    fontSize = 21.sp,
+                    fontSize = if (isCompact) 17.sp else 20.sp,
+                    lineHeight = if (isCompact) 21.sp else 24.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E3A8A),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2
                 )
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Sửa tên",
                     tint = Color(0xFF2563EB),
-                    modifier = Modifier.size(16.dp)
+                    modifier = Modifier.size(if (isCompact) 14.dp else 16.dp)
                 )
             }
 
@@ -442,13 +416,13 @@ private fun ProfileHeader(
 
             Text(
                 text = email,
-                fontSize = 13.5.sp,
+                fontSize = if (isCompact) 12.sp else 13.5.sp,
+                lineHeight = if (isCompact) 15.sp else 17.sp,
                 color = Color(0xFF64748B),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 2
             )
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(5.dp))
 
             // Blue Tag Badge: "★ Học viên tích cực"
             Surface(
@@ -463,18 +437,33 @@ private fun ProfileHeader(
                         imageVector = Icons.Default.Star,
                         contentDescription = null,
                         tint = Color(0xFF0284C7),
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(11.dp)
                     )
                     Spacer(Modifier.width(4.dp))
+                    val displayLevel = remember(uiState.currentLevelName) {
+                        val name = uiState.currentLevelName.trim()
+                        when {
+                            name.isBlank() -> "Học viên tích cực"
+                            name.startsWith("Cấp ", ignoreCase = true) && name.contains(":") -> {
+                                name.substringAfter(":").trim()
+                            }
+                            name.contains(":") -> name.substringBefore(":").trim()
+                            else -> name
+                        }
+                    }
                     Text(
-                        text = uiState.currentLevelName.ifBlank { "Học viên tích cực" },
-                        fontSize = 11.5.sp,
+                        text = displayLevel,
+                        fontSize = if (isCompact) 10.5.sp else 11.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0284C7)
+                        color = Color(0xFF0284C7),
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
         }
+
+        Spacer(Modifier.width(6.dp))
 
         // Circular Settings Button (Gear icon)
         Surface(
@@ -482,14 +471,14 @@ private fun ProfileHeader(
             color = Color.White,
             shadowElevation = 2.dp,
             border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-            modifier = Modifier.size(40.dp)
+            modifier = Modifier.size(if (isCompact) 38.dp else 40.dp)
         ) {
             IconButton(onClick = onSettingsClick) {
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Cài đặt",
                     tint = Color(0xFF2563EB),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(if (isCompact) 18.dp else 20.dp)
                 )
             }
         }
@@ -500,13 +489,16 @@ private fun ProfileHeader(
 // SECTION 2: 4-Column Statistics Card
 // -------------------------------------------------------------
 @Composable
-private fun ProfileStatsCard(uiState: ProfileUiState) {
+private fun ProfileStatsCard(
+    uiState: ProfileUiState,
+    isCompact: Boolean = false
+) {
     val profile = uiState.profile
     val progress = uiState.progress
 
     val xpVal = uiState.currentXp
-    val streakVal = profile?.streak ?: 2
-    val completedLessonsVal = progress?.completedLessons ?: profile?.totalLessonsCompleted ?: 1
+    val streakVal = profile?.streak ?: 0
+    val completedLessonsVal = progress?.completedLessons ?: profile?.totalLessonsCompleted ?: 0
     val studyTimeMins = uiState.totalStudyMinutes
 
     Surface(
@@ -516,57 +508,121 @@ private fun ProfileStatsCard(uiState: ProfileUiState) {
         border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Col 1: Tổng XP
-            StatColumn(
-                icon = Icons.Default.Star,
-                iconTint = Color(0xFFD97706),
-                iconBg = Color(0xFFFEF3C7),
-                value = "$xpVal",
-                label = "Tổng XP",
-                modifier = Modifier.weight(1f)
-            )
+        if (isCompact) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatColumn(
+                        icon = Icons.Default.Star,
+                        iconTint = Color(0xFFD97706),
+                        iconBg = Color(0xFFFEF3C7),
+                        value = "$xpVal",
+                        label = "Tổng XP",
+                        modifier = Modifier.weight(1f)
+                    )
 
-            VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
+                    VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
 
-            // Col 2: Ngày học liên tiếp
-            StatColumn(
-                icon = Icons.Default.LocalFireDepartment,
-                iconTint = Color(0xFFEF4444),
-                iconBg = Color(0xFFFEE2E2),
-                value = "$streakVal",
-                label = "Ngày liên tiếp",
-                modifier = Modifier.weight(1f)
-            )
+                    StatColumn(
+                        icon = Icons.Default.LocalFireDepartment,
+                        iconTint = Color(0xFFEF4444),
+                        iconBg = Color(0xFFFEE2E2),
+                        value = "$streakVal",
+                        label = "Ngày liên tiếp",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-            VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = Color(0xFFF1F5F9)
+                )
 
-            // Col 3: Bài học đã hoàn thành
-            StatColumn(
-                icon = Icons.AutoMirrored.Filled.MenuBook,
-                iconTint = Color(0xFF0284C7),
-                iconBg = Color(0xFFE0F2FE),
-                value = "$completedLessonsVal",
-                label = "Bài hoàn thành",
-                modifier = Modifier.weight(1f)
-            )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatColumn(
+                        icon = Icons.AutoMirrored.Filled.MenuBook,
+                        iconTint = Color(0xFF0284C7),
+                        iconBg = Color(0xFFE0F2FE),
+                        value = "$completedLessonsVal",
+                        label = "Bài hoàn thành",
+                        modifier = Modifier.weight(1f)
+                    )
 
-            VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
+                    VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
 
-            // Col 4: Thời gian học
-            StatColumn(
-                icon = Icons.Default.Schedule,
-                iconTint = Color(0xFF10B981),
-                iconBg = Color(0xFFDCFCE7),
-                value = formatStudyDuration(studyTimeMins),
-                label = "Thời gian học",
-                modifier = Modifier.weight(1f)
-            )
+                    StatColumn(
+                        icon = Icons.Default.Schedule,
+                        iconTint = Color(0xFF10B981),
+                        iconBg = Color(0xFFDCFCE7),
+                        value = formatStudyDuration(studyTimeMins),
+                        label = "Thời gian học",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Col 1: Tổng XP
+                StatColumn(
+                    icon = Icons.Default.Star,
+                    iconTint = Color(0xFFD97706),
+                    iconBg = Color(0xFFFEF3C7),
+                    value = "$xpVal",
+                    label = "Tổng XP",
+                    modifier = Modifier.weight(1f)
+                )
+
+                VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
+
+                // Col 2: Ngày học liên tiếp
+                StatColumn(
+                    icon = Icons.Default.LocalFireDepartment,
+                    iconTint = Color(0xFFEF4444),
+                    iconBg = Color(0xFFFEE2E2),
+                    value = "$streakVal",
+                    label = "Ngày liên tiếp",
+                    modifier = Modifier.weight(1f)
+                )
+
+                VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
+
+                // Col 3: Bài học đã hoàn thành
+                StatColumn(
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    iconTint = Color(0xFF0284C7),
+                    iconBg = Color(0xFFE0F2FE),
+                    value = "$completedLessonsVal",
+                    label = "Bài hoàn thành",
+                    modifier = Modifier.weight(1f)
+                )
+
+                VerticalDivider(modifier = Modifier.height(36.dp), color = Color(0xFFF1F5F9))
+
+                // Col 4: Thời gian học
+                StatColumn(
+                    icon = Icons.Default.Schedule,
+                    iconTint = Color(0xFF10B981),
+                    iconBg = Color(0xFFDCFCE7),
+                    value = formatStudyDuration(studyTimeMins),
+                    label = "Thời gian học",
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -612,10 +668,12 @@ private fun StatColumn(
 
         Text(
             text = label,
-            fontSize = 10.5.sp,
+            fontSize = 10.sp,
             color = Color(0xFF64748B),
             textAlign = TextAlign.Center,
-            maxLines = 1
+            minLines = 2,
+            maxLines = 2,
+            lineHeight = 13.sp
         )
     }
 }
@@ -659,7 +717,8 @@ private fun ProfileStudyTimeChart(
     chartBars: List<DailyChartBar>,
     todayMinutes: Int,
     totalMinutes: Int,
-    dailyGoalMinutes: Int = 30
+    dailyGoalMinutes: Int = 30,
+    isCompact: Boolean = false
 ) {
     Surface(
         color = Color.White,
@@ -671,7 +730,7 @@ private fun ProfileStudyTimeChart(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp)
+                .padding(if (isCompact) 14.dp else 18.dp)
         ) {
             // Header Row: Icon + Title & Subtitle + Today Pill
             Row(
@@ -679,10 +738,13 @@ private fun ProfileStudyTimeChart(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(if (isCompact) 32.dp else 36.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFDCFCE7)),
                         contentAlignment = Alignment.Center
@@ -691,26 +753,32 @@ private fun ProfileStudyTimeChart(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
                             tint = Color(0xFF10B981),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(if (isCompact) 18.dp else 20.dp)
                         )
                     }
 
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(if (isCompact) 8.dp else 10.dp))
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Thời gian học mỗi ngày",
-                            fontSize = 16.sp,
+                            text = "Thời gian học tập",
+                            fontSize = if (isCompact) 13.5.sp else 15.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1E3A8A)
+                            color = Color(0xFF1E3A8A),
+                            maxLines = 1,
+                            softWrap = false
                         )
                         Text(
-                            text = "Thời gian sử dụng ứng dụng 7 ngày qua",
-                            fontSize = 11.5.sp,
-                            color = Color(0xFF64748B)
+                            text = "7 ngày gần nhất",
+                            fontSize = if (isCompact) 10.5.sp else 11.5.sp,
+                            color = Color(0xFF64748B),
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
+
+                Spacer(Modifier.width(6.dp))
 
                 // Pill Tag: Hôm nay
                 Surface(
@@ -719,7 +787,7 @@ private fun ProfileStudyTimeChart(
                     border = BorderStroke(1.dp, Color(0xFFBFDBFE))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -727,12 +795,14 @@ private fun ProfileStudyTimeChart(
                                 .size(6.dp)
                                 .background(Color(0xFF2563EB), CircleShape)
                         )
-                        Spacer(Modifier.width(5.dp))
+                        Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "Hôm nay: ${formatStudyDuration(todayMinutes)}",
-                            fontSize = 11.sp,
+                            text = if (isCompact) formatStudyDuration(todayMinutes) else "Hôm nay: ${formatStudyDuration(todayMinutes)}",
+                            fontSize = if (isCompact) 10.sp else 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A8A)
+                            color = Color(0xFF1E3A8A),
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }
@@ -750,56 +820,80 @@ private fun ProfileStudyTimeChart(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFFF8FAFC))
-                    .padding(vertical = 10.dp, horizontal = 12.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                    .padding(vertical = 10.dp, horizontal = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Metric 1: Tổng 7 ngày
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = formatStudyDuration(display7Days),
-                        fontSize = 15.sp,
+                        fontSize = 14.5.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1E3A8A)
+                        color = Color(0xFF1E3A8A),
+                        maxLines = 1
                     )
                     Text(
-                        text = "Tổng 7 ngày",
-                        fontSize = 10.5.sp,
-                        color = Color(0xFF64748B)
+                        text = "Tổng\n7 ngày",
+                        fontSize = 10.sp,
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.Center,
+                        minLines = 2,
+                        maxLines = 2,
+                        lineHeight = 13.sp
                     )
                 }
 
                 VerticalDivider(modifier = Modifier.height(24.dp), color = Color(0xFFE2E8F0))
 
                 // Metric 2: Trung bình/ngày
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.weight(1.15f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = formatStudyDuration(avgMins),
-                        fontSize = 15.sp,
+                        fontSize = 14.5.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF10B981)
+                        color = Color(0xFF10B981),
+                        maxLines = 1
                     )
                     Text(
-                        text = "Trung bình/ngày",
-                        fontSize = 10.5.sp,
-                        color = Color(0xFF64748B)
+                        text = "Trung bình\n/ ngày",
+                        fontSize = 10.sp,
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.Center,
+                        minLines = 2,
+                        maxLines = 2,
+                        lineHeight = 13.sp
                     )
                 }
 
                 VerticalDivider(modifier = Modifier.height(24.dp), color = Color(0xFFE2E8F0))
 
                 // Metric 3: Mục tiêu ngày
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
                         text = formatStudyDuration(dailyGoalMinutes),
-                        fontSize = 15.sp,
+                        fontSize = 14.5.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF2563EB)
+                        color = Color(0xFF2563EB),
+                        maxLines = 1
                     )
                     Text(
-                        text = "Mục tiêu ngày",
-                        fontSize = 10.5.sp,
-                        color = Color(0xFF64748B)
+                        text = "Mục tiêu\nngày",
+                        fontSize = 10.sp,
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.Center,
+                        minLines = 2,
+                        maxLines = 2,
+                        lineHeight = 13.sp
                     )
                 }
             }
@@ -842,12 +936,12 @@ private fun ProfileStudyTimeChart(
                         // Vertical bar container
                         Box(
                             modifier = Modifier
-                                .width(24.dp)
+                                .width(20.dp)
                                 .height(95.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(if (bar.isToday) Color(0xFFEFF6FF) else Color(0xFFF1F5F9))
                                 .then(
-                                    if (bar.isToday) Modifier.border(1.5.dp, Color(0xFF93C5FD), RoundedCornerShape(12.dp))
+                                    if (bar.isToday) Modifier.border(1.5.dp, Color(0xFF93C5FD), RoundedCornerShape(10.dp))
                                     else Modifier
                                 ),
                             contentAlignment = Alignment.BottomCenter
@@ -964,13 +1058,12 @@ private fun ProfileStudyTimeChart(
 }
 
 // -------------------------------------------------------------
-// SECTION 3: Main Menu Section (Card with 6 rows)
+// SECTION 3: Main Menu Section (Card with 5 rows)
 // -------------------------------------------------------------
 @Composable
 private fun ProfileMenuList(
     onEditProfile: () -> Unit,
     onLearningHistory: () -> Unit,
-    onFavorites: () -> Unit,
     onNotifications: () -> Unit,
     onHelpSupport: () -> Unit,
     onLogout: () -> Unit
@@ -1005,18 +1098,7 @@ private fun ProfileMenuList(
             )
             HorizontalDivider(color = Color(0xFFF8FAFC), thickness = 1.dp, modifier = Modifier.padding(start = 68.dp))
 
-            // 3. Từ vựng yêu thích
-            ProfileMenuItem(
-                icon = Icons.Default.Favorite,
-                iconTint = Color(0xFFEC4899),
-                iconBg = Color(0xFFFCE7F3),
-                title = "Từ vựng yêu thích",
-                subtitle = "Danh sách từ vựng đã lưu",
-                onClick = onFavorites
-            )
-            HorizontalDivider(color = Color(0xFFF8FAFC), thickness = 1.dp, modifier = Modifier.padding(start = 68.dp))
-
-            // 4. Thông báo
+            // 3. Thông báo
             ProfileMenuItem(
                 icon = Icons.Default.Notifications,
                 iconTint = Color(0xFF0D9488),
@@ -1596,10 +1678,11 @@ private fun AvatarPickerDialog(
                                 Text(
                                     text = item.name,
                                     fontSize = 11.sp,
+                                    lineHeight = 14.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                     color = if (isSelected) Color(0xFF1E3A8A) else Color(0xFF475569),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    maxLines = 2,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
@@ -1877,139 +1960,7 @@ private fun ModuleBadge(label: String, isDone: Boolean) {
     }
 }
 
-// -------------------------------------------------------------
-// DIALOG 4: Từ vựng yêu thích (Favorite Words Dialog)
-// -------------------------------------------------------------
-@Composable
-private fun FavoriteWordsDialog(
-    favorites: List<String>,
-    onDismiss: () -> Unit,
-    onPlayAudio: (String) -> Unit,
-    onSearchWordInDict: (String) -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.75f)
-                .clip(RoundedCornerShape(26.dp)),
-            color = Color.White,
-            shadowElevation = 8.dp
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFCE7F3)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
-                                tint = Color(0xFFEC4899),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = "Từ vựng yêu thích",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1E3A8A)
-                        )
-                    }
 
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = Color(0xFF94A3B8))
-                    }
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                val displayList = favorites.ifEmpty { listOf("apple", "house", "cat", "school") }
-
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(displayList) { word ->
-                        Surface(
-                            color = Color(0xFFF8FAFC),
-                            shape = RoundedCornerShape(14.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(
-                                        onClick = { onPlayAudio(word) },
-                                        modifier = Modifier
-                                            .size(32.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFFDBEAFE))
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                            contentDescription = "Phát âm",
-                                            tint = Color(0xFF2563EB),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-
-                                    Spacer(Modifier.width(12.dp))
-
-                                    Column {
-                                        Text(
-                                            text = word,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF1E293B)
-                                        )
-                                        Text(
-                                            text = when (word.lowercase()) {
-                                                "apple" -> "quả táo (danh từ)"
-                                                "house" -> "ngôi nhà (danh từ)"
-                                                "cat" -> "con mèo (danh từ)"
-                                                "school" -> "trường học (danh từ)"
-                                                else -> "Từ đã lưu trong từ điển"
-                                            },
-                                            fontSize = 12.sp,
-                                            color = Color(0xFF64748B)
-                                        )
-                                    }
-                                }
-
-                                TextButton(onClick = { onSearchWordInDict(word) }) {
-                                    Text("Tra cứu", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 // -------------------------------------------------------------
 // DIALOG 5: Cài đặt thông báo (Notifications Dialog)

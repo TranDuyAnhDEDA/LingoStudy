@@ -106,11 +106,14 @@ fun LingoBottomNav(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
                 selected  = selectedIndex == index,
                 onClick   = { onItemSelected(index) },
                 icon      = { Icon(imageVector = item.icon, contentDescription = item.label) },
+                alwaysShowLabel = true,
                 label     = {
                     Text(
                         text       = item.label,
                         fontSize   = 11.sp,
-                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
+                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium,
+                        maxLines   = 1,
+                        softWrap   = false
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

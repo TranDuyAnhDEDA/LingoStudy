@@ -66,6 +66,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.R
 import com.example.mystudyapp.ui.component.shared.NavItemData
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.ui.theme.LingoGray
 import com.example.mystudyapp.ui.theme.MyStudyAppTheme
@@ -80,6 +82,7 @@ fun LearnScreen(
     viewModel: LearnViewModel = viewModel(factory = LearnViewModelFactory())
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
     var selectedNav by remember { mutableIntStateOf(1) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -132,47 +135,54 @@ fun LearnScreen(
                     )
                 }
             } else {
-                LazyColumn(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .statusBarsPadding(),
-                    contentPadding = PaddingValues(top = 10.dp, bottom = 32.dp)
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.TopCenter
                 ) {
-                    // Header Banner
-                    item {
-                        EntranceWrapper(delayMillis = 80) {
-                            LearnHeaderSection()
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .responsiveContentWidth(680.dp),
+                        contentPadding = PaddingValues(top = 10.dp, bottom = 32.dp)
+                    ) {
+                        // Header Banner
+                        item {
+                            EntranceWrapper(delayMillis = 80) {
+                                LearnHeaderSection(isCompact = windowInfo.isCompact)
+                            }
                         }
-                    }
 
-                    item { Spacer(Modifier.height(18.dp)) }
+                        item { Spacer(Modifier.height(18.dp)) }
 
-                    // Section Title
-                    item {
-                        EntranceWrapper(delayMillis = 180) {
-                            LearnSectionHeader()
+                        // Section Title
+                        item {
+                            EntranceWrapper(delayMillis = 180) {
+                                LearnSectionHeader()
+                            }
                         }
-                    }
 
-                    item { Spacer(Modifier.height(14.dp)) }
+                        item { Spacer(Modifier.height(14.dp)) }
 
-                    // Program Cards
-                    item {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            uiState.programs.forEachIndexed { index, program ->
-                                EntranceWrapper(delayMillis = 260 + (index * 100)) {
-                                    ProgramCard(
-                                        program = program,
-                                        onSelectProgram = {
-                                            if (program.isAvailable) {
-                                                onNavigate("program/${program.id}")
+                        // Program Cards
+                        item {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                uiState.programs.forEachIndexed { index, program ->
+                                    EntranceWrapper(delayMillis = 260 + (index * 100)) {
+                                        ProgramCard(
+                                            program = program,
+                                            isCompact = windowInfo.isCompact,
+                                            onSelectProgram = {
+                                                if (program.isAvailable) {
+                                                    onNavigate("program/${program.id}")
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -184,7 +194,7 @@ fun LearnScreen(
 }
 
 @Composable
-private fun LearnHeaderSection() {
+private fun LearnHeaderSection(isCompact: Boolean = false) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -214,15 +224,20 @@ private fun LearnHeaderSection() {
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .height(135.dp),
+                    .height(if (isCompact) 110.dp else 135.dp),
                 contentScale = ContentScale.FillHeight
             )
 
             // Left Text Content
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.66f)
-                    .padding(start = 18.dp, top = 18.dp, bottom = 18.dp, end = 4.dp)
+                    .fillMaxWidth(if (isCompact) 0.68f else 0.66f)
+                    .padding(
+                        start = if (isCompact) 14.dp else 18.dp,
+                        top = if (isCompact) 14.dp else 18.dp,
+                        bottom = if (isCompact) 14.dp else 18.dp,
+                        end = 4.dp
+                    )
             ) {
                 Surface(
                     color = Color(0xFFE0F2FE),
@@ -249,23 +264,23 @@ private fun LearnHeaderSection() {
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(8.dp))
 
                 Text(
                     text = "Chọn chương trình phù hợp",
-                    fontSize = 21.sp,
+                    fontSize = if (isCompact) 18.sp else 21.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E3A8A),
-                    lineHeight = 27.sp
+                    lineHeight = if (isCompact) 23.sp else 27.sp
                 )
 
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(4.dp))
 
                 Text(
                     text = "Bắt đầu từ trình độ của bạn và từng bước chinh phục tiếng Anh.",
-                    fontSize = 12.5.sp,
+                    fontSize = if (isCompact) 11.5.sp else 12.5.sp,
                     color = Color(0xFF475569),
-                    lineHeight = 17.5.sp
+                    lineHeight = if (isCompact) 16.sp else 17.5.sp
                 )
             }
         }
@@ -302,6 +317,7 @@ private fun LearnSectionHeader() {
 @Composable
 private fun ProgramCard(
     program: ProgramUiModel,
+    isCompact: Boolean = false,
     onSelectProgram: () -> Unit
 ) {
     val (avatarRes, illRes) = remember(program.id, program.title) {
@@ -327,65 +343,67 @@ private fun ProgramCard(
         shadowElevation = 2.dp,
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.85f))
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(if (isCompact) 14.dp else 18.dp)) {
             // Status Badge
             StatusBadge(isAvailable = program.isAvailable)
 
             Spacer(Modifier.height(12.dp))
 
-            // Main Info Row: Avatar + Title/Description + Right Illustration
+            // Main Info Row: Avatar + Title/Description + (Right Illustration on standard/tablet)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left Squircle Avatar (Smooth transparent rounded container)
+                // Left Squircle Avatar
                 Image(
                     painter = painterResource(id = avatarRes),
                     contentDescription = program.title,
-                    modifier = Modifier.size(66.dp),
+                    modifier = Modifier.size(if (isCompact) 52.dp else 66.dp),
                     contentScale = ContentScale.Fit
                 )
 
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(if (isCompact) 10.dp else 14.dp))
 
                 // Middle Text & Stats
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = program.title,
-                        fontSize = 17.sp,
+                        fontSize = if (isCompact) 15.5.sp else 17.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1E3A8A),
-                        lineHeight = 22.sp
+                        lineHeight = if (isCompact) 20.sp else 22.sp
                     )
 
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(3.dp))
 
                     Text(
                         text = program.description,
-                        fontSize = 12.5.sp,
+                        fontSize = if (isCompact) 11.5.sp else 12.5.sp,
                         color = Color(0xFF475569),
-                        lineHeight = 17.sp
+                        lineHeight = if (isCompact) 15.5.sp else 17.sp
                     )
 
                     if (program.isAvailable) {
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.School,
                                     contentDescription = null,
                                     tint = Color(0xFF2563EB),
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
                                     text = "${program.levelCount} cấp độ",
-                                    fontSize = 12.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A8A)
+                                    color = Color(0xFF1E3A8A),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -393,32 +411,35 @@ private fun ProgramCard(
                                     imageVector = Icons.Default.AutoStories,
                                     contentDescription = null,
                                     tint = Color(0xFF2563EB),
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
                                     text = "30 bài học",
-                                    fontSize = 12.sp,
+                                    fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A8A)
+                                    color = Color(0xFF1E3A8A),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                         }
                     }
                 }
 
-                Spacer(Modifier.width(6.dp))
-
-                // Right Illustration (Chevron + Cloud Pod / Leaves / Teddy / City - Transparent background)
-                Image(
-                    painter = painterResource(id = illRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(width = 74.dp, height = 70.dp),
-                    contentScale = ContentScale.Fit
-                )
+                // Decorative right illustration only on standard/tablet screens
+                if (!isCompact) {
+                    Spacer(Modifier.width(6.dp))
+                    Image(
+                        painter = painterResource(id = illRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(width = 74.dp, height = 70.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
             // Action Button
             Button(
@@ -444,8 +465,10 @@ private fun ProgramCard(
                 ) {
                     Text(
                         text = if (program.isAvailable) "Khám phá chương trình" else "Sắp ra mắt",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = if (isCompact) 13.sp else 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     if (program.isAvailable) {
                         Spacer(Modifier.width(6.dp))
@@ -508,11 +531,14 @@ private fun LearnBottomNav(selectedIndex: Int, onItemSelected: (Int) -> Unit) {
                 selected = selectedIndex == index,
                 onClick = { onItemSelected(index) },
                 icon = { Icon(imageVector = item.icon, contentDescription = item.label) },
+                alwaysShowLabel = true,
                 label = {
                     Text(
                         text = item.label,
                         fontSize = 11.sp,
-                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium
+                        fontWeight = if (selectedIndex == index) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(

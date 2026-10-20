@@ -91,6 +91,8 @@ import com.example.mystudyapp.R
 import com.example.mystudyapp.data.model.Lesson
 import com.example.mystudyapp.data.model.LessonProgress
 import com.example.mystudyapp.data.model.Unit as LearningUnit
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.ui.theme.LingoGreen
 import com.example.mystudyapp.viewmodel.LessonItemUiModel
@@ -145,6 +147,7 @@ fun UnitLessonsScreen(
     viewModel: UnitLessonsViewModel = viewModel(factory = UnitLessonsViewModelFactory(unitId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
 
     // Preserve ON_RESUME refresh logic
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -201,13 +204,19 @@ fun UnitLessonsScreen(
                     if (idx >= 0) idx else lessons.size - 1
                 }
 
-                LazyColumn(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    contentPadding = PaddingValues(top = 10.dp, bottom = 48.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.TopCenter
                 ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .responsiveContentWidth(600.dp),
+                        contentPadding = PaddingValues(top = 10.dp, bottom = 48.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                     // Checkpoint Header Card
                     item {
                         EntranceWrapper(delayMillis = 100) {
@@ -270,13 +279,12 @@ fun UnitLessonsScreen(
                                                 ) {
                                                     Text(
                                                         text = row.item.lesson.titleVi ?: row.item.lesson.title,
-                                                        fontSize = 12.sp,
+                                                        fontSize = 11.5.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = Color(0xFF1E3A8A),
                                                         textAlign = TextAlign.Center,
                                                         maxLines = 2,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        lineHeight = 15.sp,
+                                                        lineHeight = 14.5.sp,
                                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                                     )
                                                 }
@@ -317,7 +325,7 @@ fun UnitLessonsScreen(
                                                 // Left Node Column
                                                 Column(
                                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                                    modifier = Modifier.width(136.dp)
+                                                    modifier = Modifier.weight(1f)
                                                 ) {
                                                     LessonCandyNode(
                                                         lesson = row.first.lesson,
@@ -338,22 +346,23 @@ fun UnitLessonsScreen(
                                                     ) {
                                                         Text(
                                                             text = row.first.lesson.titleVi ?: row.first.lesson.title,
-                                                            fontSize = 12.sp,
+                                                            fontSize = 11.sp,
                                                             fontWeight = FontWeight.Bold,
                                                             color = Color(0xFF1E3A8A),
                                                             textAlign = TextAlign.Center,
                                                             maxLines = 2,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                            lineHeight = 15.sp,
-                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                            lineHeight = 14.sp,
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                                                         )
                                                     }
                                                 }
 
+                                                Spacer(Modifier.width(8.dp))
+
                                                 // Right Node Column
                                                 Column(
                                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                                    modifier = Modifier.width(136.dp)
+                                                    modifier = Modifier.weight(1f)
                                                 ) {
                                                     LessonCandyNode(
                                                         lesson = row.second.lesson,
@@ -374,14 +383,13 @@ fun UnitLessonsScreen(
                                                     ) {
                                                         Text(
                                                             text = row.second.lesson.titleVi ?: row.second.lesson.title,
-                                                            fontSize = 12.sp,
+                                                            fontSize = 11.sp,
                                                             fontWeight = FontWeight.Bold,
                                                             color = if (isUnlocked2) Color(0xFF1E3A8A) else Color(0xFF64748B),
                                                             textAlign = TextAlign.Center,
                                                             maxLines = 2,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                            lineHeight = 15.sp,
-                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                            lineHeight = 14.sp,
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                                                         )
                                                     }
                                                 }
@@ -411,6 +419,7 @@ fun UnitLessonsScreen(
                 }
             }
         }
+    }
 
         // Duolingo-style Lesson Detail Dialog
         popupLessonItem?.let { (item, idx) ->
@@ -424,6 +433,7 @@ fun UnitLessonsScreen(
                 progress = progress,
                 isCompleted = isCompleted,
                 isUnlocked = isUnlocked,
+                isCompact = windowInfo.isCompact,
                 onDismiss = { popupLessonItem = null },
                 onStartLesson = {
                     popupLessonItem = null
@@ -492,11 +502,11 @@ private fun UnitTopBar(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = unit?.titleVi ?: unit?.title ?: "Bài 1: Chào hỏi & Giới thiệu",
-                fontSize = 16.sp,
+                fontSize = 15.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color(0xFF1E3A8A),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                maxLines = 2
             )
         }
 
@@ -987,6 +997,7 @@ private fun LessonDetailDialog(
     progress: LessonProgress?,
     isCompleted: Boolean,
     isUnlocked: Boolean,
+    isCompact: Boolean = false,
     onDismiss: () -> Unit,
     onStartLesson: () -> Unit
 ) {
@@ -1003,12 +1014,14 @@ private fun LessonDetailDialog(
             color = Color.White,
             shadowElevation = 8.dp,
             border = BorderStroke(1.5.dp, Color(0xFFE0F2FE)),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .responsiveContentWidth(420.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(if (isCompact) 16.dp else 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header with Order & Close button
@@ -1048,7 +1061,7 @@ private fun LessonDetailDialog(
                 // Lesson Title
                 Text(
                     text = lesson.titleVi ?: lesson.title,
-                    fontSize = 18.sp,
+                    fontSize = if (isCompact) 16.5.sp else 18.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E3A8A),
                     textAlign = TextAlign.Center
@@ -1066,9 +1079,9 @@ private fun LessonDetailDialog(
                     )
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
 
-                // 5 Skills Status Row
+                // 5 Skills Status Card
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color(0xFFF8FAFC),
@@ -1086,15 +1099,35 @@ private fun LessonDetailDialog(
                             color = Color(0xFF1E3A8A)
                         )
                         Spacer(Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            SkillStatusIcon(name = "Từ vựng", isDone = vocabDone, icon = Icons.Default.AutoStories)
-                            SkillStatusIcon(name = "Ngữ pháp", isDone = grammarDone, icon = Icons.Default.School)
-                            SkillStatusIcon(name = "Nghe", isDone = listeningDone, icon = Icons.AutoMirrored.Filled.VolumeUp)
-                            SkillStatusIcon(name = "Trò chơi", isDone = pronunDone, icon = Icons.Default.Extension)
-                            SkillStatusIcon(name = "Quiz", isDone = quizDone, icon = Icons.Default.Psychology)
+                        if (isCompact) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                SkillStatusIcon(name = "Từ vựng", isDone = vocabDone, icon = Icons.Default.AutoStories)
+                                SkillStatusIcon(name = "Ngữ pháp", isDone = grammarDone, icon = Icons.Default.School)
+                                SkillStatusIcon(name = "Nghe", isDone = listeningDone, icon = Icons.AutoMirrored.Filled.VolumeUp)
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                SkillStatusIcon(name = "Trò chơi", isDone = pronunDone, icon = Icons.Default.Extension)
+                                Spacer(Modifier.width(28.dp))
+                                SkillStatusIcon(name = "Quiz", isDone = quizDone, icon = Icons.Default.Psychology)
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                SkillStatusIcon(name = "Từ vựng", isDone = vocabDone, icon = Icons.Default.AutoStories)
+                                SkillStatusIcon(name = "Ngữ pháp", isDone = grammarDone, icon = Icons.Default.School)
+                                SkillStatusIcon(name = "Nghe", isDone = listeningDone, icon = Icons.AutoMirrored.Filled.VolumeUp)
+                                SkillStatusIcon(name = "Trò chơi", isDone = pronunDone, icon = Icons.Default.Extension)
+                                SkillStatusIcon(name = "Quiz", isDone = quizDone, icon = Icons.Default.Psychology)
+                            }
                         }
                     }
                 }
@@ -1124,7 +1157,9 @@ private fun LessonDetailDialog(
                                 text = "Hoàn thành bài trước để mở khóa",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF64748B)
+                                color = Color(0xFF64748B),
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -1141,10 +1176,12 @@ private fun LessonDetailDialog(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = if (isCompleted) "Ôn tập lại bài học (Đã nhận +${lesson.xpReward} XP)" else "Bắt đầu học (Hoàn thành nhận +${lesson.xpReward} XP)",
-                                fontSize = 13.sp,
+                                text = if (isCompleted) "Ôn tập lại (+${lesson.xpReward} XP)" else "Bắt đầu học (+${lesson.xpReward} XP)",
+                                fontSize = if (isCompact) 12.5.sp else 13.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             Spacer(Modifier.width(6.dp))
                             Icon(

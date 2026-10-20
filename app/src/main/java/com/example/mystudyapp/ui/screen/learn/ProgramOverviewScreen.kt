@@ -45,12 +45,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mystudyapp.ui.component.MascotExpression
 import com.example.mystudyapp.ui.component.MascotView
+import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
+import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.ui.theme.LingoGray
 import com.example.mystudyapp.ui.theme.LingoGreen
@@ -66,6 +69,7 @@ fun ProgramOverviewScreen(
     viewModel: ProgramOverviewViewModel = viewModel(factory = ProgramOverviewViewModelFactory(programId))
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowInfo = rememberWindowInfo()
 
     Scaffold(
         containerColor = Color(0xFFF8FAFF),
@@ -75,122 +79,136 @@ fun ProgramOverviewScreen(
                 shadowElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFFF1F5F9),
+                    Row(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clickable { onBackClick() }
+                            .responsiveContentWidth(680.dp)
+                            .fillMaxWidth()
+                            .padding(
+                                horizontal = if (windowInfo.isCompact) 12.dp else 16.dp,
+                                vertical = 12.dp
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.padding(8.dp),
-                            tint = Color(0xFF1E3A8A)
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFF1F5F9),
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clickable { onBackClick() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                modifier = Modifier.padding(8.dp),
+                                tint = Color(0xFF1E3A8A)
+                            )
+                        }
+
+                        Spacer(Modifier.width(16.dp))
+
+                        Text(
+                            text = "Tổng quan chương trình",
+                            fontSize = if (windowInfo.isCompact) 16.sp else 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E3A8A),
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.weight(1f)
                         )
                     }
-
-                    Spacer(Modifier.width(16.dp))
-
-                    Text(
-                        text = uiState.program?.titleVi ?: uiState.program?.title ?: "Tổng quan chương trình",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A8A)
-                    )
                 }
             }
         }
     ) { innerPadding ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = LingoBlue)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                // Section 1: Editorial Landing Hero
-                item {
-                    EntranceWrapper(delayMillis = 100) {
-                        val program = uiState.program
-                        Surface(
-                            color = Color.White,
-                            shape = RoundedCornerShape(28.dp),
-                            shadowElevation = 2.dp,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(Color(0xFFE0F2FE), Color(0xFFEFF6FF), Color.White)
-                                        )
-                                    )
-                                    .padding(22.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    color = LingoBlue,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .responsiveContentWidth(680.dp)
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(if (windowInfo.isCompact) 12.dp else 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (windowInfo.isCompact) 14.dp else 20.dp)
+                ) {
+                    // Section 1: Editorial Landing Hero
+                    item {
+                        EntranceWrapper(delayMillis = 100) {
+                            val program = uiState.program
+                            Surface(
+                                color = Color.White,
+                                shape = RoundedCornerShape(28.dp),
+                                shadowElevation = 2.dp,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Surface(
-                                    color = Color(0xFFDBEAFE),
-                                    shape = RoundedCornerShape(14.dp)
-                                ) {
-                                    Text(
-                                        text = "CHƯƠNG TRÌNH HỌC · ${(program?.targetAudienceVi ?: program?.targetAudience).orEmpty().ifBlank { "Tất cả học viên" }}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = LingoBlue,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                                    )
-                                }
-
-                                Spacer(Modifier.height(14.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = program?.titleVi ?: program?.title ?: "Tổng quan chương trình",
-                                            fontSize = 24.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = Color(0xFF1E3A8A),
-                                            lineHeight = 30.sp
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(Color(0xFFE0F2FE), Color(0xFFEFF6FF), Color.White)
+                                            )
                                         )
-
-                                        Spacer(Modifier.height(6.dp))
-
+                                        .padding(if (windowInfo.isCompact) 16.dp else 22.dp)
+                                ) {
+                                    Surface(
+                                        color = Color(0xFFDBEAFE),
+                                        shape = RoundedCornerShape(14.dp)
+                                    ) {
                                         Text(
-                                            text = program?.descriptionVi ?: program?.description ?: "",
-                                            fontSize = 13.sp,
-                                            color = Color(0xFF475569),
-                                            lineHeight = 19.sp
+                                            text = "CHƯƠNG TRÌNH HỌC · ${(program?.targetAudienceVi ?: program?.targetAudience).orEmpty().ifBlank { "Tất cả học viên" }}",
+                                            fontSize = if (windowInfo.isCompact) 10.sp else 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LingoBlue,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                         )
                                     }
 
-                                    Spacer(Modifier.width(12.dp))
+                                    Spacer(Modifier.height(if (windowInfo.isCompact) 10.dp else 14.dp))
 
-                                    MascotView(
-                                        modifier = Modifier.size(110.dp),
-                                        expression = MascotExpression.HAPPY,
-                                        enableAnimation = true
-                                    )
-                                }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = program?.titleVi ?: program?.title ?: "Tổng quan chương trình",
+                                                fontSize = if (windowInfo.isCompact) 20.sp else 24.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color(0xFF1E3A8A),
+                                                lineHeight = if (windowInfo.isCompact) 26.sp else 30.sp
+                                            )
+
+                                            Spacer(Modifier.height(6.dp))
+
+                                            Text(
+                                                text = program?.descriptionVi ?: program?.description ?: "",
+                                                fontSize = if (windowInfo.isCompact) 12.sp else 13.sp,
+                                                color = Color(0xFF475569),
+                                                lineHeight = 18.sp
+                                            )
+                                        }
+
+                                        Spacer(Modifier.width(10.dp))
+
+                                        MascotView(
+                                            modifier = Modifier.size(if (windowInfo.isCompact) 72.dp else 95.dp),
+                                            expression = MascotExpression.HAPPY,
+                                            enableAnimation = true
+                                        )
+                                    }
 
                                 val objectives = program?.learningObjectivesVi ?: program?.learningObjectives ?: emptyList()
                                 if (objectives.isNotEmpty()) {
@@ -387,7 +405,13 @@ fun ProgramOverviewScreen(
                                         colors = ButtonDefaults.buttonColors(containerColor = LingoBlue)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("Khám phá cấp độ học tập", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = if (windowInfo.isCompact) "Khám phá cấp độ" else "Khám phá cấp độ học tập",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
                                             Spacer(Modifier.width(8.dp))
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -404,6 +428,7 @@ fun ProgramOverviewScreen(
             }
         }
     }
+}
 }
 
 @Composable

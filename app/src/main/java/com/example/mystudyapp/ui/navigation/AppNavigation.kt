@@ -1,5 +1,7 @@
 package com.example.mystudyapp.ui.navigation
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,6 +26,7 @@ import com.example.mystudyapp.ui.component.chatbot.ParrotChatModal
 import com.example.mystudyapp.ui.component.chatbot.ParrotFloatingMascot
 import com.example.mystudyapp.ui.screen.auth.LoginScreen
 import com.example.mystudyapp.ui.screen.auth.RegisterScreen
+import com.example.mystudyapp.ui.screen.auth.VerifyEmailScreen
 import com.example.mystudyapp.ui.screen.dictionary.DictionaryScreen
 import com.example.mystudyapp.ui.screen.game.GameScreen
 import com.example.mystudyapp.ui.screen.grammar.GrammarScreen
@@ -37,6 +40,7 @@ import com.example.mystudyapp.ui.screen.lesson.LessonScreen
 import com.example.mystudyapp.ui.screen.listening.ListeningScreen
 import com.example.mystudyapp.ui.screen.pronunciation.PronunciationScreen
 import com.example.mystudyapp.ui.screen.quiz.QuizScreen
+import com.example.mystudyapp.ui.screen.splash.SplashScreen
 import com.example.mystudyapp.ui.screen.vocabulary.VocabularyScreen
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.viewmodel.AuthViewModel
@@ -65,7 +69,20 @@ fun AppNavigation(
         }
     }
 
-    when (authUiState.authState) {
+    var isSplashFinished by remember { mutableStateOf(false) }
+
+    Crossfade(
+        targetState = isSplashFinished,
+        animationSpec = tween(durationMillis = 400),
+        label = "SplashCrossfade"
+    ) { finished ->
+        if (!finished) {
+            SplashScreen(
+                durationMillis = 2000L,
+                onFinish = { isSplashFinished = true }
+            )
+        } else {
+            when (authUiState.authState) {
         is AuthState.Loading -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -99,11 +116,25 @@ fun AppNavigation(
         }
 
         is AuthState.Authenticated -> {
-            AppUsageTimeTracker()
-            val chatbotViewModel: ChatbotViewModel = viewModel(factory = ChatbotViewModelFactory())
-            var showChatModal by remember { mutableStateOf(false) }
+            val user = (authUiState.authState as AuthState.Authenticated).user
+            if (!user.isEmailVerified) {
+                VerifyEmailScreen(
+                    email = user.email ?: "",
+                    isChecking = authUiState.isCheckingVerification,
+                    isResending = authUiState.isResendingEmail,
+                    message = authUiState.verificationMessage,
+                    resendSuccessMessage = authUiState.resendSuccessMessage,
+                    onCheckVerification = { authViewModel.checkEmailVerification() },
+                    onResendEmail = { authViewModel.resendVerificationEmail() },
+                    onLogout = { authViewModel.logout() },
+                    onClearMessage = { authViewModel.clearVerificationMessages() }
+                )
+            } else {
+                AppUsageTimeTracker()
+                val chatbotViewModel: ChatbotViewModel = viewModel(factory = ChatbotViewModelFactory())
+                var showChatModal by remember { mutableStateOf(false) }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize()) {
                 NavHost(navController = navController, startDestination = "home") {
                 composable("home") {
                     HomeScreen(onNavigate = safeNavigate)
@@ -265,5 +296,8 @@ fun AppNavigation(
             }
         }
     }
+}
+}
+}
 }
 }

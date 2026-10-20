@@ -24,7 +24,11 @@ data class AuthUiState(
     val authState: AuthState = AuthState.Loading,
     val currentUser: AuthUser? = null,
     val errorMessage: String? = null,
-    val isSuccess: Boolean = false
+    val isSuccess: Boolean = false,
+    val isCheckingVerification: Boolean = false,
+    val isResendingEmail: Boolean = false,
+    val verificationMessage: String? = null,
+    val resendSuccessMessage: String? = null
 )
 
 class AuthViewModel(
@@ -186,6 +190,74 @@ class AuthViewModel(
 
     fun clearSuccess() {
         _uiState.update { it.copy(isSuccess = false) }
+    }
+
+    fun checkEmailVerification(onVerified: (() -> Unit)? = null) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingVerification = true, verificationMessage = null) }
+            val result = authRepository.reloadUser()
+            result.fold(
+                onSuccess = { user ->
+                    if (user != null && user.isEmailVerified) {
+                        _uiState.update {
+                            it.copy(
+                                isCheckingVerification = false,
+                                currentUser = user,
+                                authState = AuthState.Authenticated(user),
+                                verificationMessage = null
+                            )
+                        }
+                        onVerified?.invoke()
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isCheckingVerification = false,
+                                verificationMessage = "Email vẫn chưa được xác thực. Vui lòng kiểm tra hộp thư Gmail (kể cả thư mục Spam) và bấm vào liên kết xác nhận."
+                            )
+                        }
+                    }
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isCheckingVerification = false,
+                            verificationMessage = throwable.message ?: "Không thể kiểm tra trạng thái xác thực. Vui lòng thử lại."
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun resendVerificationEmail() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isResendingEmail = true, resendSuccessMessage = null, verificationMessage = null) }
+            val result = authRepository.sendEmailVerification()
+            result.fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(
+                            isResendingEmail = false,
+                            resendSuccessMessage = "Đã gửi lại email xác thực! Vui lòng kiểm tra hộp thư đến hoặc mục Thư rác (Spam)."
+                        )
+                    }
+                },
+                onFailure = { throwable ->
+                    _uiState.update {
+                        it.copy(
+                            isResendingEmail = false,
+                            verificationMessage = throwable.message ?: "Không thể gửi lại email xác thực lúc này. Vui lòng thử lại sau."
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun clearVerificationMessages() {
+        _uiState.update {
+            it.copy(verificationMessage = null, resendSuccessMessage = null)
+        }
     }
 }
 
