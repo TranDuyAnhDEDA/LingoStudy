@@ -30,6 +30,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Khởi tạo UserProfileLocalStore & ProgressLocalStore
+        com.example.mystudyapp.data.local.UserProfileLocalStore.init(this)
+        com.example.mystudyapp.data.local.ProgressLocalStore.init(this)
+
         // Khởi tạo kênh thông báo và đặt lịch nhắc nhở mỗi 6 tiếng nếu chưa đạt chỉ tiêu
         NotificationHelper.createNotificationChannel(this)
         StudyReminderScheduler.schedulePeriodicReminder(this)

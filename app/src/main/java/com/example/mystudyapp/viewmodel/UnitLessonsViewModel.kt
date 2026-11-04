@@ -58,47 +58,56 @@ class UnitLessonsViewModel(
 
         viewModelScope.launch {
             authRepository.observeAuthState().flatMapLatest { user ->
-                if (user == null) {
-                    flowOf(UnitLessonsUiState(isLoading = false, isAuthenticated = false))
-                } else {
-                    val uid = user.uid
-                    val unitFlow = learningRepository.getUnit(unitId)
-                    val lessonsFlow = learningRepository.getLessonsByUnit(unitId)
+                val uid = user?.uid
+                val unitFlow = learningRepository.getUnit(unitId)
+                val lessonsFlow = learningRepository.getLessonsByUnit(unitId)
 
-                    combine(unitFlow, lessonsFlow) { unitRes, lessonsRes ->
-                        val unit = unitRes.getOrNull()
-                        val lessonsList = lessonsRes.getOrNull() ?: emptyList()
-                        Pair(unit, lessonsList)
-                    }.flatMapLatest { (unit, lessonsList) ->
-                        if (lessonsList.isEmpty()) {
-                            flowOf(
-                                UnitLessonsUiState(
-                                    isLoading = false,
-                                    isAuthenticated = true,
-                                    errorMessage = null,
-                                    unit = unit,
-                                    lessons = emptyList()
-                                )
+                combine(unitFlow, lessonsFlow) { unitRes, lessonsRes ->
+                    val unit = unitRes.getOrNull()
+                    val lessonsList = lessonsRes.getOrNull() ?: emptyList()
+                    Pair(unit, lessonsList)
+                }.flatMapLatest { (unit, lessonsList) ->
+                    if (lessonsList.isEmpty()) {
+                        flowOf(
+                            UnitLessonsUiState(
+                                isLoading = false,
+                                isAuthenticated = user != null,
+                                errorMessage = null,
+                                unit = unit,
+                                lessons = emptyList()
                             )
-                        } else {
-                            val progressFlows = lessonsList.map { lesson ->
-                                progressRepository.getLessonProgress(uid, lesson.id)
-                            }
-
-                            combine(progressFlows) { progressResults ->
-                                val uiModels = lessonsList.mapIndexed { index, lesson ->
-                                    val progress = progressResults.getOrNull(index)?.getOrNull()
-                                    LessonItemUiModel(lesson = lesson, progress = progress)
-                                }
-                                UnitLessonsUiState(
-                                    isLoading = false,
-                                    isAuthenticated = true,
-                                    errorMessage = null,
-                                    unit = unit,
-                                    lessons = uiModels
-                                )
-                            }
+                        )
+                    } else if (uid != null) {
+                        val progressFlows = lessonsList.map { lesson ->
+                            progressRepository.getLessonProgress(uid, lesson.id)
                         }
+
+                        combine(progressFlows) { progressResults ->
+                            val uiModels = lessonsList.mapIndexed { index, lesson ->
+                                val progress = progressResults.getOrNull(index)?.getOrNull()
+                                LessonItemUiModel(lesson = lesson, progress = progress)
+                            }
+                            UnitLessonsUiState(
+                                isLoading = false,
+                                isAuthenticated = true,
+                                errorMessage = null,
+                                unit = unit,
+                                lessons = uiModels
+                            )
+                        }
+                    } else {
+                        val uiModels = lessonsList.map { lesson ->
+                            LessonItemUiModel(lesson = lesson, progress = null)
+                        }
+                        flowOf(
+                            UnitLessonsUiState(
+                                isLoading = false,
+                                isAuthenticated = false,
+                                errorMessage = null,
+                                unit = unit,
+                                lessons = uiModels
+                            )
+                        )
                     }
                 }
             }.collect { newState ->

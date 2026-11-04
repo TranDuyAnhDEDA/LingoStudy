@@ -19,7 +19,8 @@ open class GeminiChatService(
 ) {
 
     companion object {
-        private const val GEMINI_PRIMARY_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+        private const val GEMINI_2_5_FLASH_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+        private const val GEMINI_2_0_FLASH_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
         private const val GEMINI_SECONDARY_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
         private const val GEMINI_LEGACY_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
     }
@@ -40,7 +41,8 @@ open class GeminiChatService(
         }
 
         val endpoints = listOf(
-            "$GEMINI_PRIMARY_URL?key=$trimmedKey",
+            "$GEMINI_2_5_FLASH_URL?key=$trimmedKey",
+            "$GEMINI_2_0_FLASH_URL?key=$trimmedKey",
             "$GEMINI_SECONDARY_URL?key=$trimmedKey",
             "$GEMINI_LEGACY_URL?key=$trimmedKey"
         )

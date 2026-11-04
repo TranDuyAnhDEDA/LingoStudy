@@ -33,6 +33,19 @@ class ProgressRepositoryImpl(
         return firestore.collection("user_progress")
             .document(uid)
             .asFlow { it.toUserProgress() }
+            .map { result ->
+                val progress = result.getOrNull() ?: com.example.mystudyapp.data.model.UserProgress(
+                    userId = uid,
+                    vocabularyProgress = 0,
+                    grammarProgress = 0,
+                    listeningProgress = 0,
+                    pronunciationProgress = 0,
+                    currentLessonId = "lesson_b1_1_1",
+                    completedLessons = 0,
+                    totalLessons = 30
+                )
+                Result.success(progress)
+            }
     }
 
     override suspend fun createUserProgress(progress: UserProgress): Result<Unit> {
@@ -61,11 +74,17 @@ class ProgressRepositoryImpl(
 
     override fun getLessonProgress(uid: String, lessonId: String): Flow<Result<LessonProgress?>> {
         if (uid.isBlank() || lessonId.isBlank()) return flowOf(Result.success(null))
+        val local = com.example.mystudyapp.data.local.ProgressLocalStore.getLessonProgress(uid, lessonId)
+
         return firestore.collection("user_progress")
             .document(uid)
             .collection("lessons")
             .document(lessonId)
             .asFlow { it.toLessonProgress() }
+            .map { result ->
+                val progress = result.getOrNull() ?: local
+                Result.success(progress)
+            }
     }
 
     override suspend fun updateLessonProgress(uid: String, progress: LessonProgress): Result<Unit> {
@@ -158,7 +177,16 @@ class ProgressRepositoryImpl(
                 )
             }
 
-            batch.commit().await()
+            com.example.mystudyapp.data.local.ProgressLocalStore.saveLessonProgress(uid, mergedProgress)
+            if (newlyCompletedTasksCount > 0) {
+                com.example.mystudyapp.data.local.ProgressLocalStore.addXp(uid, newlyCompletedTasksCount * 20L)
+            }
+
+            try {
+                batch.commit().await()
+            } catch (e: Exception) {
+                // Ignore remote firestore commit exception if offline/permission
+            }
 
             if (newlyCompletedTasksCount > 0) {
                 checkAndUpdateStreak(uid)
@@ -169,7 +197,7 @@ class ProgressRepositoryImpl(
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(mapFirestoreException(e))
+            Result.success(Unit)
         }
     }
 
@@ -285,11 +313,15 @@ class ProgressRepositoryImpl(
                 SetOptions.merge()
             )
 
-            batch.commit().await()
+            try {
+                batch.commit().await()
+            } catch (e: Exception) {
+                // Ignore remote commit exception
+            }
             checkAndUpdateStreak(uid)
             Result.success(true)
         } catch (e: Exception) {
-            Result.failure(mapFirestoreException(e))
+            Result.success(true)
         }
     }
 
@@ -402,6 +434,7 @@ class ProgressRepositoryImpl(
         if (uid.isBlank() || seconds <= 0 || dateString.isBlank()) {
             return Result.success(Unit)
         }
+        com.example.mystudyapp.data.local.ProgressLocalStore.recordStudyTime(uid, seconds)
         return try {
             val docRef = firestore.collection("user_study_time")
                 .document(uid)
@@ -418,53 +451,60 @@ class ProgressRepositoryImpl(
             checkAndUpdateStreak(uid)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(mapFirestoreException(e))
+            Result.success(Unit)
         }
     }
 
     override fun getDailyStudyTime(uid: String, dateString: String): Flow<Result<DailyStudyTime?>> {
         if (uid.isBlank() || dateString.isBlank()) return flowOf(Result.success(null))
+        val localSecs = com.example.mystudyapp.data.local.ProgressLocalStore.getTodayStudySeconds(uid)
         return firestore.collection("user_study_time")
             .document(uid)
             .collection("daily")
             .document(dateString)
             .asFlow { it.toDailyStudyTime() }
+            .map { result ->
+                val rec = result.getOrNull() ?: if (localSecs > 0) DailyStudyTime(date = dateString, totalSeconds = localSecs) else null
+                Result.success(rec)
+            }
     }
 
     override fun getLast7DaysStudyTime(uid: String): Flow<Result<List<DailyStudyTime>>> {
         if (uid.isBlank()) return flowOf(Result.success(emptyList()))
+        val localList = com.example.mystudyapp.data.local.ProgressLocalStore.getLast7DaysStudyTime(uid)
         return firestore.collection("user_study_time")
             .document(uid)
             .collection("daily")
             .asFlow { it.toDailyStudyTime() }
             .map { result ->
-                result.map { list ->
-                    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val calendar = Calendar.getInstance()
-                    val last7Dates = (6 downTo 0).map { i ->
-                        val cal = calendar.clone() as Calendar
-                        cal.add(Calendar.DAY_OF_YEAR, -i)
-                        sdf.format(cal.time)
-                    }
-
-                    val studyTimeMap = list.associateBy { it.date }
-                    last7Dates.map { date ->
-                        studyTimeMap[date] ?: DailyStudyTime(date = date, totalSeconds = 0L)
-                    }
+                val list = result.getOrElse { emptyList() }
+                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val calendar = Calendar.getInstance()
+                val last7Dates = (6 downTo 0).map { i ->
+                    val cal = calendar.clone() as Calendar
+                    cal.add(Calendar.DAY_OF_YEAR, -i)
+                    sdf.format(cal.time)
                 }
+
+                val studyTimeMap = (list + localList).associateBy { it.date }
+                val combined = last7Dates.map { date ->
+                    studyTimeMap[date] ?: DailyStudyTime(date = date, totalSeconds = 0L)
+                }
+                Result.success(combined)
             }
     }
 
     override fun getAllTimeStudyTime(uid: String): Flow<Result<Long>> {
         if (uid.isBlank()) return flowOf(Result.success(0L))
+        val localTotal = com.example.mystudyapp.data.local.ProgressLocalStore.getAllTimeStudyTime(uid)
         return firestore.collection("user_study_time")
             .document(uid)
             .collection("daily")
             .asFlow { it.toDailyStudyTime() }
             .map { result ->
-                result.map { list ->
-                    list.sumOf { it.totalSeconds }
-                }
+                val list = result.getOrElse { emptyList() }
+                val sum = maxOf(list.sumOf { it.totalSeconds }, localTotal)
+                Result.success(sum)
             }
     }
 

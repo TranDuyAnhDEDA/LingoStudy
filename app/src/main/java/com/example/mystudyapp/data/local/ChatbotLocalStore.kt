@@ -8,7 +8,7 @@ class ChatbotLocalStore(
     private val defaultApiKey: String? = DEFAULT_API_KEY
 ) {
     companion object {
-        const val DEFAULT_API_KEY = "AIzaSyD91I7kDPOwiITcgbq5k5RUCkBpU3riWYk"
+        const val DEFAULT_API_KEY = "AQ.Ab8RN6JmkwlyvkkY-ja9TkTHeS0wP1gFmCZGN-Jq-UGrMeLbKQ"
     }
 
     private val prefs: SharedPreferences? = try {
@@ -23,12 +23,10 @@ class ChatbotLocalStore(
     fun getApiKey(): String? {
         val stored = prefs?.getString("gemini_api_key", null)?.trim()
         if (stored != null) {
-            if (stored.isBlank()) return null
-            if (!stored.startsWith("AQ.")) return stored
+            return if (stored.isBlank()) null else stored
         }
         if (memoryApiKey != null) {
-            if (memoryApiKey!!.isBlank()) return null
-            if (!memoryApiKey!!.startsWith("AQ.")) return memoryApiKey
+            return if (memoryApiKey!!.isBlank()) null else memoryApiKey
         }
         return defaultApiKey
     }

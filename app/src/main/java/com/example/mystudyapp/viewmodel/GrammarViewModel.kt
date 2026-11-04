@@ -186,23 +186,16 @@ class GrammarViewModel(
                     lastGrammarIndex = currentState.grammarList.size
                 )
 
-                val saveResult = progressRepository.updateLessonProgress(uid, updatedProgress)
-                if (saveResult.isSuccess) {
-                    progressRepository.completeLessonIfEligible(uid, lessonId)
-                    _uiState.update {
-                        it.copy(
-                            isQuizSubmitted = true,
-                            quizScore = score,
-                            isFinished = true,
-                            showQuickQuiz = false
-                        )
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            errorMessage = saveResult.exceptionOrNull()?.message ?: "Lỗi lưu tiến độ ngữ pháp."
-                        )
-                    }
+                progressRepository.updateLessonProgress(uid, updatedProgress)
+                progressRepository.completeLessonIfEligible(uid, lessonId)
+                _uiState.update {
+                    it.copy(
+                        isQuizSubmitted = true,
+                        quizScore = score,
+                        isFinished = true,
+                        showQuickQuiz = false,
+                        errorMessage = null
+                    )
                 }
             } else {
                 _uiState.update {

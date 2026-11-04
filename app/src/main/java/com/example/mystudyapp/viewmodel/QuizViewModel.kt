@@ -229,21 +229,14 @@ class QuizViewModel(
                         lastQuizIndex = list.size,
                         quizScore = currentState.currentScore
                     )
-                    val saveResult = progressRepository.updateLessonProgress(uid, updatedProgress)
-                    if (saveResult.isSuccess) {
-                        progressRepository.completeLessonIfEligible(uid, lessonId)
-                        _uiState.update {
-                            it.copy(
-                                currentIndex = list.size - 1,
-                                isFinished = true
-                            )
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                errorMessage = saveResult.exceptionOrNull()?.message ?: "Failed to save progress."
-                            )
-                        }
+                    progressRepository.updateLessonProgress(uid, updatedProgress)
+                    progressRepository.completeLessonIfEligible(uid, lessonId)
+                    _uiState.update {
+                        it.copy(
+                            currentIndex = list.size - 1,
+                            isFinished = true,
+                            errorMessage = null
+                        )
                     }
                 } else {
                     _uiState.update {

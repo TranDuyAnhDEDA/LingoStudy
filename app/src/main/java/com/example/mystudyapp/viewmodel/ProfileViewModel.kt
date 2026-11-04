@@ -234,15 +234,20 @@ class ProfileViewModel(
 
                         val favs = dictionaryStore.getFavoriteWords().toList()
 
+                        val localXp = com.example.mystudyapp.data.local.ProgressLocalStore.getXp(uid)
+                        val effectiveXp = maxOf(effectiveProfile.xp.toLong(), localXp).toInt()
+                        val localStreak = com.example.mystudyapp.data.local.ProgressLocalStore.getStreak(uid)
+                        val effectiveStreak = maxOf(effectiveProfile.streak, localStreak)
+
                         val levelInfo = UserLevelCalculator.calculate(
-                            effectiveProfile.xp,
+                            effectiveXp,
                             matchedLevel?.nameVi ?: matchedLevel?.name ?: effectiveProfile.levelName.ifBlank { null }
                         )
                         ProfileUiState(
                             isLoading = false,
                             isAuthenticated = true,
                             errorMessage = null,
-                            profile = effectiveProfile,
+                            profile = effectiveProfile.copy(xp = effectiveXp, streak = effectiveStreak),
                             progress = progress,
                             currentLevelName = levelInfo.levelName,
                             currentXp = effectiveProfile.xp,

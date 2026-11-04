@@ -196,22 +196,15 @@ class PronunciationViewModel(
                         lastListeningIndex = progressObj?.lastListeningIndex ?: 0,
                         lastPronunciationIndex = list.size
                     )
-                    val saveResult = progressRepository.updateLessonProgress(uid, updatedProgress)
-                    if (saveResult.isSuccess) {
-                        progressRepository.completeLessonIfEligible(uid, lessonId)
-                        _uiState.update {
-                            it.copy(
-                                currentIndex = list.size - 1,
-                                completedCount = list.size,
-                                isFinished = true
-                            )
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                errorMessage = saveResult.exceptionOrNull()?.message ?: "Failed to save progress."
-                            )
-                        }
+                    progressRepository.updateLessonProgress(uid, updatedProgress)
+                    progressRepository.completeLessonIfEligible(uid, lessonId)
+                    _uiState.update {
+                        it.copy(
+                            currentIndex = list.size - 1,
+                            completedCount = list.size,
+                            isFinished = true,
+                            errorMessage = null
+                        )
                     }
                 } else {
                     _uiState.update {

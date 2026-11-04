@@ -45,11 +45,6 @@ class LevelUnitsViewModel(
 
         viewModelScope.launch {
             authRepository.observeAuthState().collect { user ->
-                if (user == null) {
-                    _uiState.update { it.copy(isLoading = false, isAuthenticated = false) }
-                    return@collect
-                }
-
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
                 val levelResult = learningRepository.getLevel(levelId).firstOrNull()
@@ -60,7 +55,7 @@ class LevelUnitsViewModel(
 
                 _uiState.value = LevelUnitsUiState(
                     isLoading = false,
-                    isAuthenticated = true,
+                    isAuthenticated = user != null,
                     errorMessage = null,
                     level = level,
                     units = unitsList

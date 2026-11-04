@@ -79,156 +79,176 @@ class LearningRepositoryImpl(
 
     override fun getLevelsByProgram(programId: String): Flow<Result<List<Level>>> {
         if (programId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedLevels = if (programId == "program_beginner") {
+            listOf(BeginnerCurriculumData.level)
+        } else if (programId == "program_kids") {
+            listOf(KidsCurriculumData.level)
+        } else {
+            emptyList()
+        }
+
         return firestore.collection("levels")
             .whereEqualTo("programId", programId)
             .asFlow { it.toLevel() }
             .map { result ->
-                result.map { levelsList ->
-                    if (levelsList.isEmpty() && programId == "program_beginner") {
-                        listOf(BeginnerCurriculumData.level)
-                    } else if (levelsList.isEmpty() && programId == "program_kids") {
-                        listOf(KidsCurriculumData.level)
-                    } else {
-                        levelsList.sortedBy { it.order }
-                    }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = if (list.isEmpty()) seedLevels else list.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 
     override fun getLevels(): Flow<Result<List<Level>>> {
         return firestore.collection("levels")
             .asFlow { it.toLevel() }
-            .map { result -> result.map { list -> list.sortedBy { it.order } } }
+            .map { result ->
+                val list = result.getOrElse { emptyList() }
+                val combined = if (list.isEmpty()) {
+                    listOf(BeginnerCurriculumData.level, KidsCurriculumData.level)
+                } else {
+                    list.sortedBy { it.order }
+                }
+                Result.success(combined)
+            }
     }
 
     override fun getLevel(levelId: String): Flow<Result<Level?>> {
         if (levelId.isBlank()) return flowOf(Result.success(null))
+        val seedLevel = if (levelId == "level_beginner_1") BeginnerCurriculumData.level
+        else if (levelId == "level_kids_1") KidsCurriculumData.level
+        else null
+
         return firestore.collection("levels")
             .document(levelId)
             .asFlow { it.toLevel() }
             .map { result ->
-                result.map { level ->
-                    level ?: if (levelId == "level_beginner_1") BeginnerCurriculumData.level
-                    else if (levelId == "level_kids_1") KidsCurriculumData.level
-                    else null
-                }
+                val level = result.getOrNull() ?: seedLevel
+                Result.success(level)
             }
     }
 
     override fun getUnitsByLevel(levelId: String): Flow<Result<List<Unit>>> {
         if (levelId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedUnits = if (levelId == "level_kids_1") KidsCurriculumData.units else BeginnerCurriculumData.units
+
         return firestore.collection("units")
             .whereEqualTo("levelId", levelId)
             .asFlow { it.toUnitModel() }
             .map { result ->
-                result.map { list ->
-                    val seedUnits = if (levelId == "level_kids_1") KidsCurriculumData.units else BeginnerCurriculumData.units
-                    (list + seedUnits).distinctBy { it.id }.sortedBy { it.order }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = (list + seedUnits).distinctBy { it.id }.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 
     override fun getUnit(unitId: String): Flow<Result<Unit?>> {
         if (unitId.isBlank()) return flowOf(Result.success(null))
+        val seedUnit = BeginnerCurriculumData.units.firstOrNull { it.id == unitId }
+            ?: KidsCurriculumData.units.firstOrNull { it.id == unitId }
+
         return firestore.collection("units")
             .document(unitId)
             .asFlow { it.toUnitModel() }
             .map { result ->
-                result.map { unit ->
-                    unit ?: BeginnerCurriculumData.units.firstOrNull { it.id == unitId }
-                    ?: KidsCurriculumData.units.firstOrNull { it.id == unitId }
-                }
+                val unit = result.getOrNull() ?: seedUnit
+                Result.success(unit)
             }
     }
 
     override fun getLessonsByUnit(unitId: String): Flow<Result<List<Lesson>>> {
         if (unitId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedLessons = (BeginnerCurriculumData.lessons + KidsCurriculumData.lessons).filter { it.unitId == unitId }
+
         return firestore.collection("lessons")
             .whereEqualTo("unitId", unitId)
             .asFlow { it.toLesson() }
             .map { result ->
-                result.map { list ->
-                    val seedLessons = (BeginnerCurriculumData.lessons + KidsCurriculumData.lessons).filter { it.unitId == unitId }
-                    (list + seedLessons).distinctBy { it.id }.sortedBy { it.order }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = (list + seedLessons).distinctBy { it.id }.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 
     override fun getLesson(lessonId: String): Flow<Result<Lesson?>> {
         if (lessonId.isBlank()) return flowOf(Result.success(null))
+        val seedLesson = BeginnerCurriculumData.lessons.firstOrNull { it.id == lessonId }
+            ?: KidsCurriculumData.lessons.firstOrNull { it.id == lessonId }
+
         return firestore.collection("lessons")
             .document(lessonId)
             .asFlow { it.toLesson() }
             .map { result ->
-                result.map { lesson ->
-                    lesson ?: BeginnerCurriculumData.lessons.firstOrNull { it.id == lessonId }
-                    ?: KidsCurriculumData.lessons.firstOrNull { it.id == lessonId }
-                }
+                val lesson = result.getOrNull() ?: seedLesson
+                Result.success(lesson)
             }
     }
 
     override fun getVocabularyByLesson(lessonId: String): Flow<Result<List<Vocabulary>>> {
         if (lessonId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedVocabs = (BeginnerCurriculumData.sampleVocabularies + KidsCurriculumData.vocabularies).filter { it.lessonId == lessonId }
+
         return firestore.collection("vocabulary")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toVocabulary() }
             .map { result ->
-                result.map { list ->
-                    val seedVocabs = (BeginnerCurriculumData.sampleVocabularies + KidsCurriculumData.vocabularies).filter { it.lessonId == lessonId }
-                    (list + seedVocabs).distinctBy { it.id }.sortedBy { it.order }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = (list + seedVocabs).distinctBy { it.id }.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 
     override fun getGrammarByLesson(lessonId: String): Flow<Result<List<Grammar>>> {
         if (lessonId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedGrammars = (BeginnerCurriculumData.sampleGrammars + KidsCurriculumData.grammars).filter { it.lessonId == lessonId }
+
         return firestore.collection("grammar")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toGrammar() }
             .map { result ->
-                result.map { list ->
-                    val seedGrammars = (BeginnerCurriculumData.sampleGrammars + KidsCurriculumData.grammars).filter { it.lessonId == lessonId }
-                    (list + seedGrammars).distinctBy { it.id }.sortedBy { it.order }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = (list + seedGrammars).distinctBy { it.id }.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 
     override fun getListeningByLesson(lessonId: String): Flow<Result<List<Listening>>> {
         if (lessonId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedListenings = (BeginnerCurriculumData.sampleListenings + KidsCurriculumData.listenings).filter { it.lessonId == lessonId }
+
         return firestore.collection("listening")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toListening() }
             .map { result ->
-                result.map { list ->
-                    val seedListenings = (BeginnerCurriculumData.sampleListenings + KidsCurriculumData.listenings).filter { it.lessonId == lessonId }
-                    (list + seedListenings).distinctBy { it.id }.sortedBy { it.order }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = (list + seedListenings).distinctBy { it.id }.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 
     override fun getPronunciationByLesson(lessonId: String): Flow<Result<List<Pronunciation>>> {
         if (lessonId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedPronuns = (BeginnerCurriculumData.samplePronunciations + KidsCurriculumData.pronunciations).filter { it.lessonId == lessonId }
+
         return firestore.collection("pronunciation")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toPronunciation() }
             .map { result ->
-                result.map { list ->
-                    val seedPronuns = (BeginnerCurriculumData.samplePronunciations + KidsCurriculumData.pronunciations).filter { it.lessonId == lessonId }
-                    (list + seedPronuns).distinctBy { it.id }.sortedBy { it.order }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = (list + seedPronuns).distinctBy { it.id }.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 
     override fun getQuizzesByLesson(lessonId: String): Flow<Result<List<Quiz>>> {
         if (lessonId.isBlank()) return flowOf(Result.success(emptyList()))
+        val seedQuizzes = (BeginnerCurriculumData.sampleQuizzes + KidsCurriculumData.quizzes).filter { it.lessonId == lessonId }
+
         return firestore.collection("quizzes")
             .whereEqualTo("lessonId", lessonId)
             .asFlow { it.toQuiz() }
             .map { result ->
-                result.map { list ->
-                    val seedQuizzes = (BeginnerCurriculumData.sampleQuizzes + KidsCurriculumData.quizzes).filter { it.lessonId == lessonId }
-                    (list + seedQuizzes).distinctBy { it.id }.sortedBy { it.order }
-                }
+                val list = result.getOrElse { emptyList() }
+                val combined = (list + seedQuizzes).distinctBy { it.id }.sortedBy { it.order }
+                Result.success(combined)
             }
     }
 }

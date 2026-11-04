@@ -98,19 +98,24 @@ class HomeViewModel(
                     combine(profileFlow, progressFlow) { profileResult, progressResult ->
                         Pair(profileResult, progressResult)
                     }.flatMapLatest { (profileResult, progressResult) ->
-                        if (profileResult.isFailure || progressResult.isFailure) {
-                            val errorMsg = profileResult.exceptionOrNull()?.message
-                                ?: progressResult.exceptionOrNull()?.message
-                                ?: "Failed to load user profile or progress data."
-                            flowOf(HomeUiState(isLoading = false, errorMessage = errorMsg))
-                        } else {
-                            val profile = profileResult.getOrNull()
-                            val progress = progressResult.getOrNull()
+                        val rawProfile = profileResult.getOrNull()
+                        val rawProgress = progressResult.getOrNull()
 
-                            if (profile == null || progress == null) {
-                                flowOf(HomeUiState(isLoading = false, errorMessage = "User profile or progress document not found."))
-                            } else {
-                                val levelId = profile.levelId.ifBlank { "level_beginner_1" }
+                        val profile = rawProfile ?: com.example.mystudyapp.data.model.UserProfile(
+                            uid = uid,
+                            displayName = user.displayName?.ifBlank { null } ?: "Bạn học viên",
+                            email = user.email.orEmpty(),
+                            avatarId = "boy_hoodie"
+                        )
+
+                        val progress = rawProgress ?: com.example.mystudyapp.data.model.UserProgress(
+                            userId = uid,
+                            currentLessonId = "lesson_b1_1_1",
+                            completedLessons = 0,
+                            totalLessons = 30
+                        )
+
+                        val levelId = profile.levelId.ifBlank { "level_beginner_1" }
                                 val currentLessonId = progress.currentLessonId ?: "lesson_b1_1_1"
 
                                 val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -129,12 +134,17 @@ class HomeViewModel(
                                     val todaySecs = todayStudyRecord?.totalSeconds ?: 0L
                                     val todayMins = (todaySecs / 60).toInt()
 
+                                    val localXp = com.example.mystudyapp.data.local.ProgressLocalStore.getXp(uid)
+                                    val effectiveXp = maxOf(profile.xp.toLong(), localXp).toInt()
+                                    val localStreak = com.example.mystudyapp.data.local.ProgressLocalStore.getStreak(uid)
+                                    val effectiveStreak = maxOf(profile.streak, localStreak)
+
                                     val matchedLevel = levelsList.firstOrNull { it.id == levelId }
-                                        ?: levelsList.firstOrNull { profile.xp < it.xpRequired }
+                                        ?: levelsList.firstOrNull { effectiveXp < it.xpRequired }
                                         ?: levelsList.firstOrNull()
 
                                     val levelInfo = UserLevelCalculator.calculate(
-                                        profile.xp,
+                                        effectiveXp,
                                         matchedLevel?.nameVi ?: matchedLevel?.name
                                     )
                                     val currentLevelName = levelInfo.levelName
@@ -210,10 +220,10 @@ class HomeViewModel(
                                         displayName = profile.displayName.ifBlank { "Bạn học viên" },
                                         avatarId = profile.avatarId,
                                         customAvatarPath = profile.customAvatarPath,
-                                        streak = profile.streak,
+                                        streak = effectiveStreak,
                                         levelName = currentLevelName,
                                         levelOrder = currentLevelOrder,
-                                        currentXp = profile.xp,
+                                        currentXp = effectiveXp,
                                         currentLevelXp = currentLevelXp,
                                         requiredXp = currentLevelRequiredXp,
                                         nextLevelThresholdXp = nextLevelThresholdXp,
@@ -242,8 +252,6 @@ class HomeViewModel(
                                 }
                             }
                         }
-                    }
-                }
             }.collect { newState ->
                 _uiState.value = newState
             }
