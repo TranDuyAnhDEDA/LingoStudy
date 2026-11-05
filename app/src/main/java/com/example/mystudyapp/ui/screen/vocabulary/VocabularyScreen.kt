@@ -37,8 +37,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Style
+import com.example.mystudyapp.ui.component.speech.PronunciationPracticeModal
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -91,6 +93,7 @@ fun VocabularyScreen(
     val context = LocalContext.current
 
     var tts: TextToSpeech? by remember { mutableStateOf(null) }
+    var isPracticingPronunciation by remember { mutableStateOf(false) }
 
     DisposableEffect(context) {
         val ttsEngine = TextToSpeech(context) { status ->
@@ -110,6 +113,20 @@ fun VocabularyScreen(
     }
 
     ActiveStudyTimeTracker(lessonId = lessonId, activityName = "vocabulary")
+
+    val currentVocab = uiState.vocabularyList.getOrNull(uiState.currentIndex)
+    if (isPracticingPronunciation && currentVocab != null) {
+        PronunciationPracticeModal(
+            targetWord = currentVocab.word,
+            phonetic = currentVocab.phonetic,
+            meaningVi = currentVocab.meaningVi ?: currentVocab.meaning,
+            onPlayAudio = { speakWord(currentVocab.word) },
+            onScoreEarned = { score, _ ->
+                viewModel.recordPronunciationScore(currentVocab.id, score)
+            },
+            onDismiss = { isPracticingPronunciation = false }
+        )
+    }
 
     // Outer sky gradient background with decorative clouds and bottom bushes
     Box(
@@ -273,6 +290,35 @@ fun VocabularyScreen(
                                 textAlign = TextAlign.Center,
                                 lineHeight = 19.sp
                             )
+
+                            if (uiState.pronunciationScores.isNotEmpty()) {
+                                Spacer(Modifier.height(12.dp))
+                                val avgScore = uiState.pronunciationScores.values.average().toInt()
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = Color(0xFFDCFCE7),
+                                    border = BorderStroke(1.dp, Color(0xFF86EFAC))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Mic,
+                                            contentDescription = null,
+                                            tint = Color(0xFF16A34A),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = "Đã luyện nói ${uiState.pronunciationScores.size}/${uiState.vocabularyList.size} từ • Điểm TB: $avgScore%",
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF166534)
+                                        )
+                                    }
+                                }
+                            }
 
                             Spacer(Modifier.height(22.dp))
 
@@ -438,9 +484,11 @@ fun VocabularyScreen(
                                         // ----------------------------------------
                                         FlashcardFrontFace(
                                             vocab = currentVocab,
+                                            bestScore = uiState.pronunciationScores[currentVocab.id],
                                             isCompact = windowInfo.isCompact,
                                             isShortScreen = windowInfo.isShortScreen,
-                                            onPlayAudio = { speakWord(currentVocab.word) }
+                                            onPlayAudio = { speakWord(currentVocab.word) },
+                                            onPracticePronunciation = { isPracticingPronunciation = true }
                                         )
                                     } else {
                                         // ----------------------------------------
@@ -453,7 +501,9 @@ fun VocabularyScreen(
                                         ) {
                                             FlashcardBackFace(
                                                 vocab = currentVocab,
-                                                onPlayAudio = { speakWord(currentVocab.word) }
+                                                bestScore = uiState.pronunciationScores[currentVocab.id],
+                                                onPlayAudio = { speakWord(currentVocab.word) },
+                                                onPracticePronunciation = { isPracticingPronunciation = true }
                                             )
                                         }
                                     }
@@ -718,9 +768,11 @@ private fun FlashcardHeader(
 @Composable
 private fun FlashcardFrontFace(
     vocab: VocabularyUiModel,
+    bestScore: Int? = null,
     isCompact: Boolean = false,
     isShortScreen: Boolean = false,
-    onPlayAudio: () -> Unit
+    onPlayAudio: () -> Unit,
+    onPracticePronunciation: () -> Unit = {}
 ) {
     val plateSize = if (isCompact || isShortScreen) 118.dp else 150.dp
     val boxSize = if (isCompact || isShortScreen) 132.dp else 175.dp
@@ -804,21 +856,63 @@ private fun FlashcardFrontFace(
             )
         }
 
-        // Speaker Button
-        Surface(
-            shape = CircleShape,
-            color = Color(0xFFE1F0FF),
-            modifier = Modifier
-                .size(if (isCompact) 42.dp else 48.dp)
-                .clickable { onPlayAudio() }
+        // Action Row: Native Speaker Audio + AI Voice Practice Button
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                    contentDescription = "Phát âm",
-                    tint = Color(0xFF2563EB),
-                    modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
-                )
+            // Speaker Button
+            Surface(
+                shape = CircleShape,
+                color = Color(0xFFE1F0FF),
+                modifier = Modifier
+                    .size(if (isCompact) 42.dp else 48.dp)
+                    .clickable { onPlayAudio() }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                        contentDescription = "Nghe mẫu",
+                        tint = Color(0xFF2563EB),
+                        modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                    )
+                }
+            }
+
+            // AI Pronunciation Practice Button
+            val isHigh = bestScore != null && bestScore >= 75
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = if (isHigh) Color(0xFFDCFCE7) else Color(0xFFEFF6FF),
+                border = BorderStroke(1.dp, if (isHigh) Color(0xFF86EFAC) else Color(0xFFBFDBFE)),
+                modifier = Modifier
+                    .height(if (isCompact) 42.dp else 48.dp)
+                    .clickable { onPracticePronunciation() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = if (isCompact) 14.dp else 18.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Luyện nói AI",
+                        tint = if (isHigh) Color(0xFF16A34A) else Color(0xFF2563EB),
+                        modifier = Modifier.size(if (isCompact) 18.dp else 20.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = if (bestScore != null) {
+                            if (bestScore >= 90) "$bestScore% ⭐⭐⭐"
+                            else if (bestScore >= 75) "$bestScore% ⭐⭐"
+                            else "$bestScore% ⭐"
+                        } else {
+                            "Luyện nói"
+                        },
+                        fontSize = if (isCompact) 13.sp else 14.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isHigh) Color(0xFF15803D) else Color(0xFF1D4ED8)
+                    )
+                }
             }
         }
 
@@ -852,7 +946,9 @@ private fun FlashcardFrontFace(
 @Composable
 private fun FlashcardBackFace(
     vocab: VocabularyUiModel,
-    onPlayAudio: () -> Unit
+    bestScore: Int? = null,
+    onPlayAudio: () -> Unit,
+    onPracticePronunciation: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -888,14 +984,17 @@ private fun FlashcardBackFace(
 
             Spacer(Modifier.height(4.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
                     text = vocab.phonetic,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF64748B)
                 )
-                Spacer(Modifier.width(8.dp))
+
                 Surface(
                     shape = CircleShape,
                     color = Color(0xFFE1F0FF),
@@ -906,9 +1005,38 @@ private fun FlashcardBackFace(
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                            contentDescription = "Phát âm",
+                            contentDescription = "Nghe mẫu",
                             tint = Color(0xFF2563EB),
                             modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                val isHigh = bestScore != null && bestScore >= 75
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isHigh) Color(0xFFDCFCE7) else Color(0xFFEFF6FF),
+                    border = BorderStroke(1.dp, if (isHigh) Color(0xFF86EFAC) else Color(0xFFBFDBFE)),
+                    modifier = Modifier
+                        .height(32.dp)
+                        .clickable { onPracticePronunciation() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "Luyện nói",
+                            tint = if (isHigh) Color(0xFF16A34A) else Color(0xFF2563EB),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = if (bestScore != null) "$bestScore%" else "Luyện nói",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isHigh) Color(0xFF15803D) else Color(0xFF1D4ED8)
                         )
                     }
                 }

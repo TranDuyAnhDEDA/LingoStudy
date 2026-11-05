@@ -1,5 +1,6 @@
 package com.example.mystudyapp.ui.screen.pronunciation
 
+import android.speech.tts.TextToSpeech
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -27,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Button
@@ -38,12 +40,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,6 +63,7 @@ import com.example.mystudyapp.ui.component.MascotExpression
 import com.example.mystudyapp.ui.component.MascotView
 import com.example.mystudyapp.ui.component.shared.rememberWindowInfo
 import com.example.mystudyapp.ui.component.shared.responsiveContentWidth
+import com.example.mystudyapp.ui.component.speech.PronunciationPracticeModal
 import com.example.mystudyapp.ui.theme.LingoBlue
 import com.example.mystudyapp.ui.theme.LingoGray
 import com.example.mystudyapp.ui.theme.LingoGrayLight
@@ -63,6 +71,7 @@ import com.example.mystudyapp.ui.theme.LingoGreen
 import com.example.mystudyapp.viewmodel.PronunciationUiModel
 import com.example.mystudyapp.viewmodel.PronunciationViewModel
 import com.example.mystudyapp.viewmodel.PronunciationViewModelFactory
+import java.util.Locale
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -73,8 +82,44 @@ fun PronunciationScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val windowInfo = rememberWindowInfo()
+    val context = LocalContext.current
+
+    var tts: TextToSpeech? by remember { mutableStateOf(null) }
+    var isPracticingPronunciation by remember { mutableStateOf(false) }
+    var latestScores by remember { mutableStateOf(mapOf<String, Int>()) }
+
+    DisposableEffect(context) {
+        val ttsEngine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = Locale.US
+            }
+        }
+        tts = ttsEngine
+        onDispose {
+            ttsEngine.stop()
+            ttsEngine.shutdown()
+        }
+    }
+
+    fun speakWord(word: String) {
+        tts?.speak(word, TextToSpeech.QUEUE_FLUSH, null, "pronun_tts_id")
+    }
 
     ActiveStudyTimeTracker(lessonId = lessonId, activityName = "pronunciation")
+
+    val currentPronunItem = uiState.pronunciationList.getOrNull(uiState.currentIndex)
+    if (isPracticingPronunciation && currentPronunItem != null) {
+        PronunciationPracticeModal(
+            targetWord = currentPronunItem.word,
+            phonetic = currentPronunItem.phonetic,
+            meaningVi = "",
+            onPlayAudio = { speakWord(currentPronunItem.word) },
+            onScoreEarned = { score, _ ->
+                latestScores = latestScores + (currentPronunItem.id to score)
+            },
+            onDismiss = { isPracticingPronunciation = false }
+        )
+    }
 
     Scaffold(
         containerColor = Color(0xFFF8FAFF),
@@ -362,7 +407,10 @@ fun PronunciationScreen(
                         ) { item ->
                             PronunciationCard(
                                 pronunciation = item,
-                                isCompact = windowInfo.isCompact
+                                achievedScore = latestScores[item.id],
+                                isCompact = windowInfo.isCompact,
+                                onPlayAudio = { speakWord(item.word) },
+                                onStartPractice = { isPracticingPronunciation = true }
                             )
                         }
                     }
@@ -375,7 +423,10 @@ fun PronunciationScreen(
 @Composable
 private fun PronunciationCard(
     pronunciation: PronunciationUiModel,
-    isCompact: Boolean = false
+    achievedScore: Int? = null,
+    isCompact: Boolean = false,
+    onPlayAudio: () -> Unit = {},
+    onStartPractice: () -> Unit = {}
 ) {
     Surface(
         color = Color.White,
@@ -438,57 +489,94 @@ private fun PronunciationCard(
 
             if (pronunciation.phonetic.isNotBlank()) {
                 Spacer(Modifier.height(10.dp))
-                Surface(
-                    color = Color(0xFFCCFBF1),
-                    shape = RoundedCornerShape(16.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = pronunciation.phonetic,
-                        fontSize = if (isCompact) 16.sp else 20.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF0F766E),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                    )
+                    Surface(
+                        color = Color(0xFFCCFBF1),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Text(
+                            text = pronunciation.phonetic,
+                            fontSize = if (isCompact) 16.sp else 20.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF0F766E),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFE1F0FF),
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clickable { onPlayAudio() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = "Nghe phát âm mẫu",
+                                tint = Color(0xFF2563EB),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(Modifier.height(if (isCompact) 18.dp else 24.dp))
 
-            // Practice container
+            // Interactive Practice container
+            val isHigh = achievedScore != null && achievedScore >= 75
             Surface(
-                color = Color(0xFFF8FAFF),
+                color = if (isHigh) Color(0xFFF0FDF4) else Color(0xFFF8FAFF),
                 shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth()
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isHigh) Color(0xFF86EFAC) else Color(0xFFE2E8F0)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onStartPractice() }
             ) {
                 Row(
                     modifier = Modifier.padding(if (isCompact) 12.dp else 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Surface(
-                        color = LingoGreen.copy(alpha = 0.15f),
+                        color = if (isHigh) Color(0xFFDCFCE7) else LingoGreen.copy(alpha = 0.15f),
                         shape = CircleShape,
-                        modifier = Modifier.size(if (isCompact) 42.dp else 48.dp)
+                        modifier = Modifier.size(if (isCompact) 44.dp else 50.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Mic,
-                            contentDescription = null,
-                            tint = LingoGreen,
-                            modifier = Modifier.padding(if (isCompact) 10.dp else 12.dp)
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = null,
+                                tint = if (isHigh) Color(0xFF15803D) else LingoGreen,
+                                modifier = Modifier.size(if (isCompact) 22.dp else 26.dp)
+                            )
+                        }
                     }
 
                     Spacer(Modifier.width(12.dp))
 
                     Column {
                         Text(
-                            text = "Lắng nghe & Phát âm",
+                            text = if (achievedScore != null) {
+                                if (achievedScore >= 90) "Điểm của bạn: $achievedScore% ⭐⭐⭐"
+                                else if (achievedScore >= 75) "Điểm của bạn: $achievedScore% ⭐⭐"
+                                else "Điểm của bạn: $achievedScore% ⭐"
+                            } else {
+                                "Luyện phát âm ngay"
+                            },
                             fontSize = if (isCompact) 14.sp else 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A8A)
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isHigh) Color(0xFF15803D) else Color(0xFF1E3A8A)
                         )
                         Text(
-                            text = "Luyện nói từ to rõ ràng",
+                            text = if (achievedScore != null) "Chạm để đọc lại và nâng cao điểm số" else "Chạm vào đây để AI nghe & chấm điểm giọng đọc",
                             fontSize = if (isCompact) 11.5.sp else 12.sp,
                             color = LingoGray
                         )

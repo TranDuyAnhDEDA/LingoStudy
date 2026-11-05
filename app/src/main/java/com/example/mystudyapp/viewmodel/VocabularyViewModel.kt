@@ -41,7 +41,8 @@ data class VocabularyUiState(
     val vocabularyList: List<VocabularyUiModel> = emptyList(),
     val currentIndex: Int = 0,
     val completedCount: Int = 0,
-    val isFinished: Boolean = false
+    val isFinished: Boolean = false,
+    val pronunciationScores: Map<String, Int> = emptyMap()
 )
 
 class VocabularyViewModel(
@@ -255,6 +256,21 @@ class VocabularyViewModel(
                 currentIndex = 0,
                 isFinished = false
             )
+        }
+    }
+
+    fun recordPronunciationScore(vocabId: String, score: Int) {
+        _uiState.update { current ->
+            val prevScore = current.pronunciationScores[vocabId] ?: 0
+            val bestScore = maxOf(prevScore, score)
+            current.copy(pronunciationScores = current.pronunciationScores + (vocabId to bestScore))
+        }
+
+        if (score >= 75) {
+            val uid = authRepository.getCurrentUser()?.uid
+            if (uid != null) {
+                com.example.mystudyapp.data.local.ProgressLocalStore.addXp(uid, 5)
+            }
         }
     }
 
