@@ -1,7 +1,10 @@
 package com.example.mystudyapp.ui.component.speech
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -20,6 +23,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,9 +32,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +74,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -121,6 +128,33 @@ fun PronunciationPracticeModal(
         }
     }
 
+    val systemSpeechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { activityResult ->
+        if (activityResult.resultCode == Activity.RESULT_OK) {
+            val matches = activityResult.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            if (!matches.isNullOrEmpty()) {
+                val evaluated = PronunciationScorer.evaluate(targetWord, matches)
+                scoreResult = evaluated
+                onScoreEarned(evaluated.score, evaluated)
+            }
+        }
+    }
+
+    fun launchSystemSpeechRecognizer() {
+        try {
+            speechHelper.reset()
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Đọc to từ tiếng Anh: $targetWord")
+            }
+            systemSpeechLauncher.launch(intent)
+        } catch (e: Exception) {
+            requestAndStart()
+        }
+    }
+
     LaunchedEffect(speechState) {
         val current = speechState
         if (current is SpeechRecognitionState.Success) {
@@ -141,23 +175,47 @@ fun PronunciationPracticeModal(
             speechHelper.reset()
             onDismiss()
         },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
     ) {
-        Surface(
+        Box(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .padding(vertical = 16.dp),
-            shape = RoundedCornerShape(32.dp),
-            color = Color.White,
-            shadowElevation = 12.dp,
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.45f))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {
+                        speechHelper.reset()
+                        onDismiss()
+                    }
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
+            Surface(
                 modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth(0.92f)
+                    .widthIn(max = 460.dp)
+                    .padding(vertical = 16.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {} // Intercept click so taps inside don't dismiss
+                    ),
+                shape = RoundedCornerShape(32.dp),
+                color = Color.White,
+                shadowElevation = 16.dp,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0))
             ) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                 // 1. TOP HEADER (Tag & Close button)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -283,55 +341,69 @@ fun PronunciationPracticeModal(
 
                 Spacer(Modifier.height(20.dp))
 
-                // 3. MAIN INTERACTIVE VOICE STAGE
-                if (permissionDeniedMessage != null) {
-                    PermissionDeniedView(
-                        message = permissionDeniedMessage!!,
-                        onRetry = { requestAndStart() }
-                    )
-                } else if (scoreResult != null) {
-                    // RESULT / SCORE VIEW
-                    PronunciationResultView(
-                        result = scoreResult!!,
-                        onRetry = {
-                            scoreResult = null
-                            requestAndStart()
-                        },
-                        onPlayAudio = onPlayAudio,
-                        onDone = {
-                            speechHelper.reset()
-                            onDismiss()
-                        }
-                    )
-                } else {
-                    // RECORDING STATE VIEW
-                    when (val state = speechState) {
-                        is SpeechRecognitionState.Idle -> {
-                            IdleMicView(onStartRecording = { requestAndStart() })
-                        }
-                        is SpeechRecognitionState.Ready,
-                        is SpeechRecognitionState.Listening -> {
-                            val volume = (state as? SpeechRecognitionState.Listening)?.volumeLevel ?: 0.1f
-                            ActiveListeningMicView(
-                                volumeLevel = volume,
-                                onStop = { speechHelper.stopListening() }
-                            )
-                        }
-                        is SpeechRecognitionState.Processing -> {
-                            ProcessingView()
-                        }
-                        is SpeechRecognitionState.Error -> {
-                            ErrorView(
-                                message = state.message,
-                                onRetry = {
-                                    speechHelper.reset()
-                                    requestAndStart()
-                                }
-                            )
-                        }
-                        is SpeechRecognitionState.Success -> {
-                            // Handled by scoreResult above
-                            ProcessingView()
+                // 3. MAIN INTERACTIVE VOICE STAGE (Constrained minHeight to stabilize dialog)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 280.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (permissionDeniedMessage != null) {
+                        PermissionDeniedView(
+                            message = permissionDeniedMessage!!,
+                            onRetry = { requestAndStart() }
+                        )
+                    } else if (scoreResult != null) {
+                        // RESULT / SCORE VIEW
+                        PronunciationResultView(
+                            result = scoreResult!!,
+                            onRetry = {
+                                scoreResult = null
+                                requestAndStart()
+                            },
+                            onPlayAudio = onPlayAudio,
+                            onDone = {
+                                speechHelper.reset()
+                                onDismiss()
+                            }
+                        )
+                    } else {
+                        // RECORDING STATE VIEW
+                        when (val state = speechState) {
+                            is SpeechRecognitionState.Idle -> {
+                                IdleMicView(
+                                    onStartRecording = { requestAndStart() },
+                                    onUseSystemSpeech = { launchSystemSpeechRecognizer() }
+                                )
+                            }
+                            is SpeechRecognitionState.Ready,
+                            is SpeechRecognitionState.Listening -> {
+                                val listeningState = state as? SpeechRecognitionState.Listening
+                                val volume = listeningState?.volumeLevel ?: 0.1f
+                                val partial = listeningState?.partialText ?: ""
+                                ActiveListeningMicView(
+                                    volumeLevel = volume,
+                                    partialText = partial,
+                                    onStop = { speechHelper.stopListening() }
+                                )
+                            }
+                            is SpeechRecognitionState.Processing -> {
+                                ProcessingView()
+                            }
+                            is SpeechRecognitionState.Error -> {
+                                ErrorView(
+                                    message = state.message,
+                                    onRetry = {
+                                        speechHelper.reset()
+                                        requestAndStart()
+                                    },
+                                    onUseSystemSpeech = { launchSystemSpeechRecognizer() }
+                                )
+                            }
+                            is SpeechRecognitionState.Success -> {
+                                // Handled by scoreResult above
+                                ProcessingView()
+                            }
                         }
                     }
                 }
@@ -339,12 +411,16 @@ fun PronunciationPracticeModal(
         }
     }
 }
+}
 
 /**
  * State: Idle - Inviting user to tap microphone
  */
 @Composable
-private fun IdleMicView(onStartRecording: () -> Unit) {
+private fun IdleMicView(
+    onStartRecording: () -> Unit,
+    onUseSystemSpeech: () -> Unit = {}
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "idle_pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -411,6 +487,35 @@ private fun IdleMicView(onStartRecording: () -> Unit) {
             color = Color(0xFF64748B),
             textAlign = TextAlign.Center
         )
+
+        Spacer(Modifier.height(14.dp))
+
+        // Secondary fallback button for system speech
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFFF1F5F9),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            modifier = Modifier.clickable { onUseSystemSpeech() }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null,
+                    tint = Color(0xFF2563EB),
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Hoặc dùng nhận diện Google Hệ thống",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2563EB)
+                )
+            }
+        }
     }
 }
 
@@ -420,12 +525,13 @@ private fun IdleMicView(onStartRecording: () -> Unit) {
 @Composable
 private fun ActiveListeningMicView(
     volumeLevel: Float,
+    partialText: String = "",
     onStop: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "listening_wave")
     val waveAnim by infiniteTransition.animateFloat(
         initialValue = 0.8f,
-        targetValue = 1.4f,
+        targetValue = 1.35f,
         animationSpec = infiniteRepeatable(
             animation = tween(900, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
@@ -437,25 +543,37 @@ private fun ActiveListeningMicView(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(vertical = 12.dp)
     ) {
+        // Fixed size container for recording button & ripples (prevents layout boundary re-measurements)
         Box(
-            modifier = Modifier.size(130.dp),
+            modifier = Modifier.size(140.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Ripple wave 1
-            Surface(
+            // Ripple wave 1: GPU transform (scale & alpha) with zero layout re-measurement
+            val scale1 = waveAnim * (1f + volumeLevel * 0.35f)
+            val alpha1 = ((1.45f - waveAnim) * 0.45f).coerceIn(0.05f, 0.4f)
+            Box(
                 modifier = Modifier
-                    .size(80.dp * waveAnim * (1f + volumeLevel * 0.4f))
-                    .clip(CircleShape),
-                color = Color(0x33EF4444)
-            ) {}
+                    .size(80.dp)
+                    .graphicsLayer {
+                        scaleX = scale1
+                        scaleY = scale1
+                        alpha = alpha1
+                    }
+                    .background(Color(0xFFEF4444), CircleShape)
+            )
 
             // Ripple wave 2
-            Surface(
+            val scale2 = (1f + volumeLevel * 0.25f)
+            Box(
                 modifier = Modifier
-                    .size(95.dp * (1f + volumeLevel * 0.3f))
-                    .clip(CircleShape),
-                color = Color(0x22EF4444)
-            ) {}
+                    .size(96.dp)
+                    .graphicsLayer {
+                        scaleX = scale2
+                        scaleY = scale2
+                        alpha = 0.18f
+                    }
+                    .background(Color(0xFFEF4444), CircleShape)
+            )
 
             // Center Recording Mic Button
             Surface(
@@ -479,14 +597,15 @@ private fun ActiveListeningMicView(
 
         Spacer(Modifier.height(14.dp))
 
-        // Live Audio Equalizer Bars
+        // Live Audio Equalizer Bars (Fixed 42.dp height prevents modal vertical shaking)
         Row(
+            modifier = Modifier.height(42.dp),
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val v = volumeLevel.coerceIn(0.1f, 1f)
             listOf(0.4f, 0.8f, 1.2f, 0.9f, 0.5f).forEach { factor ->
-                val barHeight = (12.dp + (26.dp * (v * factor).coerceIn(0f, 1f)))
+                val barHeight = (10.dp + (26.dp * (v * factor).coerceIn(0f, 1f)))
                 Box(
                     modifier = Modifier
                         .width(6.dp)
@@ -513,6 +632,42 @@ private fun ActiveListeningMicView(
             fontSize = 12.sp,
             color = Color(0xFF94A3B8)
         )
+
+        Spacer(Modifier.height(10.dp))
+
+        // Fixed height slot for partial text recognition prevents jumping when text appears
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (partialText.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = Color(0xFFFEF2F2),
+                    border = BorderStroke(1.dp, Color(0xFFFECACA))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Đang nhận diện: ",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF991B1B)
+                        )
+                        Text(
+                            text = "\"$partialText\"",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFDC2626)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -798,7 +953,8 @@ private fun PronunciationResultView(
 @Composable
 private fun ErrorView(
     message: String,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onUseSystemSpeech: () -> Unit = {}
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -831,19 +987,32 @@ private fun ErrorView(
 
         Spacer(Modifier.height(16.dp))
 
-        Button(
-            onClick = onRetry,
-            shape = RoundedCornerShape(20.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text("Thử lại", fontWeight = FontWeight.Bold)
+            Button(
+                onClick = onRetry,
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Thử lại", fontWeight = FontWeight.Bold)
+                }
+            }
+
+            OutlinedButton(
+                onClick = onUseSystemSpeech,
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.5.dp, Color(0xFF3B82F6))
+            ) {
+                Text("Google Hệ thống", fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
             }
         }
     }

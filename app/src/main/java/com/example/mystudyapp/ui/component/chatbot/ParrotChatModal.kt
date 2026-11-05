@@ -97,39 +97,36 @@ fun ParrotChatModal(
             dismissOnClickOutside = true
         )
     ) {
-        // Outer box: clicking outside dismisses the chat modal
+        // Outer box: clicking outside dismisses the chat modal with soft dimmed backdrop
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.45f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = onDismiss
                 )
-                .padding(
-                    start = if (windowInfo.isTablet) 0.dp else 12.dp,
-                    end = 12.dp,
-                    bottom = if (windowInfo.isCompact) 68.dp else 76.dp
-                )
+                .padding(horizontal = if (windowInfo.isTablet) 24.dp else 10.dp)
+                .padding(bottom = 12.dp, top = 20.dp)
                 .imePadding(),
-            contentAlignment = if (windowInfo.isTablet) Alignment.BottomEnd else Alignment.BottomCenter
+            contentAlignment = Alignment.BottomCenter
         ) {
-            // Responsive chat popup card: wide on phones, constrained on tablet
+            // Large chat card: ~85% screen height and wide responsive bounds
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth(if (windowInfo.isTablet) 0.5f else 0.96f)
-                    .widthIn(max = 420.dp)
-                    .fillMaxHeight(if (windowInfo.isShortScreen) 0.70f else if (windowInfo.isCompact) 0.55f else 0.48f)
-                    .heightIn(min = 340.dp, max = 560.dp)
-                    .clip(RoundedCornerShape(22.dp))
+                    .fillMaxWidth(if (windowInfo.isTablet) 0.75f else 1f)
+                    .widthIn(max = 580.dp)
+                    .fillMaxHeight(0.85f)
+                    .clip(RoundedCornerShape(28.dp))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = {} // Intercept click so taps inside chat card don't dismiss
                     ),
                 color = Color.White,
-                shadowElevation = 16.dp,
-                border = BorderStroke(1.5.dp, Color(0xFFBAE6FD).copy(alpha = 0.85f))
+                shadowElevation = 20.dp,
+                border = BorderStroke(1.5.dp, Color(0xFFBAE6FD).copy(alpha = 0.9f))
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     // Sky & Cloud background matching HomeScreen & DictionaryScreen
@@ -163,9 +160,9 @@ fun ParrotChatModal(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            contentPadding = PaddingValues(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(horizontal = 12.dp),
+                            contentPadding = PaddingValues(vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             items(uiState.messages, key = { it.id }) { message ->
                                 ChatMessageItem(message = message)
@@ -181,8 +178,8 @@ fun ParrotChatModal(
                                 LazyRow(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     items(uiState.quickSuggestions) { prompt ->
                                         QuickPromptChip(
@@ -257,14 +254,14 @@ private fun ChatHeader(
     onCloseClick: () -> Unit
 ) {
     Surface(
-        color = Color.White.copy(alpha = 0.96f),
-        shadowElevation = 2.dp,
+        color = Color.White.copy(alpha = 0.98f),
+        shadowElevation = 3.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 7.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Mascot Parrot Image inside soft glowing badge
@@ -272,25 +269,25 @@ private fun ChatHeader(
                 shape = CircleShape,
                 color = Color(0xFFEFF6FF),
                 border = BorderStroke(1.dp, Color(0xFFDBEAFE)),
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(id = R.drawable.mascot_parrot),
                         contentDescription = "Vẹt AI",
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.width(7.dp))
+            Spacer(Modifier.width(10.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Trợ lý LingoParrot",
-                    fontSize = 12.5.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E3A8A),
                     maxLines = 1,
                     softWrap = false
@@ -298,14 +295,14 @@ private fun ChatHeader(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(5.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF22C55E))
                     )
-                    Spacer(Modifier.width(3.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "Trực tuyến • Sẵn sàng hỗ trợ",
-                        fontSize = 8.8.sp,
+                        text = "Trực tuyến • Sẵn sàng hỗ trợ 24/7",
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF15803D)
                     )
@@ -317,7 +314,7 @@ private fun ChatHeader(
                 shape = CircleShape,
                 color = Color(0xFFF1F5F9),
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(32.dp)
                     .clickable { onCloseClick() }
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -325,7 +322,7 @@ private fun ChatHeader(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Đóng",
                         tint = Color(0xFF475569),
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -349,19 +346,19 @@ private fun ChatMessageItem(message: ChatMessage) {
                 color = Color(0xFFEFF6FF),
                 border = BorderStroke(1.dp, Color(0xFFDBEAFE)),
                 modifier = Modifier
-                    .size(22.dp)
-                    .padding(top = 1.dp)
+                    .size(28.dp)
+                    .padding(top = 2.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(id = R.drawable.mascot_parrot),
                         contentDescription = null,
                         contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(17.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
-            Spacer(Modifier.width(5.dp))
+            Spacer(Modifier.width(8.dp))
         }
 
         if (message.isLoading) {
@@ -369,21 +366,21 @@ private fun ChatMessageItem(message: ChatMessage) {
         } else {
             Surface(
                 shape = if (isUser) {
-                    RoundedCornerShape(topStart = 15.dp, topEnd = 15.dp, bottomStart = 15.dp, bottomEnd = 3.dp)
+                    RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 4.dp)
                 } else {
-                    RoundedCornerShape(topStart = 3.dp, topEnd = 15.dp, bottomStart = 15.dp, bottomEnd = 15.dp)
+                    RoundedCornerShape(topStart = 4.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 18.dp)
                 },
                 color = if (isUser) Color(0xFF2563EB) else Color.White.copy(alpha = 0.98f),
                 border = if (!isUser) BorderStroke(1.dp, Color(0xFFE2E8F0)) else null,
                 shadowElevation = 2.dp,
-                modifier = Modifier.widthIn(max = if (isUser) 195.dp else 225.dp)
+                modifier = Modifier.widthIn(max = if (isUser) 290.dp else 330.dp)
             ) {
                 Text(
                     text = cleanText,
-                    fontSize = 11.5.sp,
-                    lineHeight = 17.sp,
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.5.sp,
                     color = if (isUser) Color.White else Color(0xFF0F172A),
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                    modifier = Modifier.padding(horizontal = 13.dp, vertical = 9.dp)
                 )
             }
         }
@@ -413,39 +410,39 @@ private fun TypingIndicatorBubble() {
     )
 
     Surface(
-        shape = RoundedCornerShape(3.dp, 14.dp, 14.dp, 14.dp),
+        shape = RoundedCornerShape(4.dp, 16.dp, 16.dp, 16.dp),
         color = Color.White,
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         shadowElevation = 1.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.5.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "Đang suy nghĩ",
-                fontSize = 10.sp,
+                text = "Vẹt đang suy nghĩ",
+                fontSize = 11.5.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF64748B)
             )
             Box(
                 modifier = Modifier
-                    .size(4.dp)
+                    .size(5.dp)
                     .graphicsLayer(alpha = alpha1)
                     .clip(CircleShape)
                     .background(Color(0xFF2563EB))
             )
             Box(
                 modifier = Modifier
-                    .size(4.dp)
+                    .size(5.dp)
                     .graphicsLayer(alpha = alpha2)
                     .clip(CircleShape)
                     .background(Color(0xFF2563EB))
             )
             Box(
                 modifier = Modifier
-                    .size(4.dp)
+                    .size(5.dp)
                     .graphicsLayer(alpha = alpha3)
                     .clip(CircleShape)
                     .background(Color(0xFF2563EB))
@@ -461,17 +458,17 @@ private fun QuickPromptChip(
 ) {
     Surface(
         color = Color.White,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
-        shadowElevation = 0.5.dp,
+        shadowElevation = 1.dp,
         modifier = Modifier.clickable { onClick() }
     ) {
         Text(
             text = text,
-            fontSize = 10.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color(0xFF1D4ED8),
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.5.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         )
     }
 }
@@ -485,13 +482,13 @@ private fun ChatInputBar(
 ) {
     Surface(
         color = Color.White,
-        shadowElevation = 3.dp,
+        shadowElevation = 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 5.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
@@ -499,8 +496,8 @@ private fun ChatInputBar(
                 onValueChange = onTextChange,
                 placeholder = {
                     Text(
-                        text = "Nhập câu hỏi của bạn",
-                        fontSize = 11.sp,
+                        text = "Nhập câu hỏi của bạn với Vẹt...",
+                        fontSize = 13.sp,
                         color = Color(0xFF94A3B8),
                         maxLines = 1,
                         softWrap = false
@@ -508,8 +505,8 @@ private fun ChatInputBar(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 34.dp, max = 56.dp),
-                shape = RoundedCornerShape(18.dp),
+                    .heightIn(min = 44.dp, max = 80.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFF2563EB),
                     unfocusedBorderColor = Color(0xFFE2E8F0),
@@ -519,16 +516,16 @@ private fun ChatInputBar(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onSend() }),
                 singleLine = false,
-                maxLines = 2
+                maxLines = 3
             )
 
-            Spacer(Modifier.width(5.dp))
+            Spacer(Modifier.width(8.dp))
 
             Surface(
                 shape = CircleShape,
                 color = if (text.isNotBlank() && !isGenerating) Color(0xFF2563EB) else Color(0xFFE2E8F0),
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(40.dp)
                     .clickable(enabled = text.isNotBlank() && !isGenerating) { onSend() }
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -536,7 +533,7 @@ private fun ChatInputBar(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Gửi",
                         tint = if (text.isNotBlank() && !isGenerating) Color.White else Color(0xFF94A3B8),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
